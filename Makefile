@@ -1,4 +1,4 @@
-.PHONY: help install install-api install-ui run run-api run-ui test test-api build build-api build-ui clean clean-api clean-ui
+.PHONY: help install install-api install-ui start start_api start_ui test test-api build build-api build-ui clean clean-api clean-ui
 
 # Default target
 .DEFAULT_GOAL := help
@@ -24,8 +24,8 @@ install-ui: ## Install UI dependencies
 	@echo "$(CYAN)Installing UI dependencies...$(RESET)"
 	cd accounting-ui && npm install
 
-# Run targets
-run: ## Run both API and UI servers (use Ctrl+C to stop both)
+# Start targets
+start: ## Start both API and UI servers (use Ctrl+C to stop both)
 	@echo "$(CYAN)Starting API and UI servers...$(RESET)"
 	@echo "API will be available at http://localhost:3001"
 	@echo "UI will be available at http://localhost:3000"
@@ -35,12 +35,12 @@ run: ## Run both API and UI servers (use Ctrl+C to stop both)
 	(cd accounting-ui && npm run dev) & \
 	wait
 
-run-api: ## Run API server only
+start_api: ## Start API server only
 	@echo "$(CYAN)Starting API server...$(RESET)"
 	@echo "API will be available at http://localhost:3001"
 	cd accounting-api && npm run dev
 
-run-ui: ## Run UI server only
+start_ui: ## Start UI server only
 	@echo "$(CYAN)Starting UI server...$(RESET)"
 	@echo "UI will be available at http://localhost:3000"
 	cd accounting-ui && npm run dev
