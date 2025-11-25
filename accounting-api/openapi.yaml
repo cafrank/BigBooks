@@ -1,0 +1,1395 @@
+openapi: 3.0.3
+info:
+  title: Accounting Service API
+  description: A comprehensive accounting API similar to QuickBooks
+  version: 1.0.0
+  contact:
+    email: api@accounting-service.com
+
+servers:
+  - url: https://api.accounting-service.com/v1
+
+security:
+  - bearerAuth: []
+  - oauth2: [read, write]
+
+tags:
+  - name: Accounts
+  - name: Invoices
+  - name: Expenses
+  - name: Customers
+  - name: Vendors
+  - name: Payments
+  - name: Products
+  - name: Reports
+  - name: Journal Entries
+  - name: Tax
+
+paths:
+  # ============ ACCOUNTS ============
+  /accounts:
+    get:
+      tags: [Accounts]
+      summary: List all accounts (Chart of Accounts)
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/AccountType'
+      responses:
+        '200':
+          description: List of accounts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountList'
+    post:
+      tags: [Accounts]
+      summary: Create a new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountCreate'
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+
+  /accounts/{accountId}:
+    parameters:
+      - $ref: '#/components/parameters/accountId'
+    get:
+      tags: [Accounts]
+      summary: Get account by ID
+      responses:
+        '200':
+          description: Account details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+    patch:
+      tags: [Accounts]
+      summary: Update an account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountUpdate'
+      responses:
+        '200':
+          description: Account updated
+    delete:
+      tags: [Accounts]
+      summary: Delete an account
+      responses:
+        '204':
+          description: Account deleted
+
+  /accounts/{accountId}/transactions:
+    get:
+      tags: [Accounts]
+      summary: Get transactions for an account
+      parameters:
+        - $ref: '#/components/parameters/accountId'
+        - $ref: '#/components/parameters/startDate'
+        - $ref: '#/components/parameters/endDate'
+      responses:
+        '200':
+          description: Account transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionList'
+
+  # ============ CUSTOMERS ============
+  /customers:
+    get:
+      tags: [Customers]
+      summary: List all customers
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerList'
+    post:
+      tags: [Customers]
+      summary: Create a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreate'
+      responses:
+        '201':
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+
+  /customers/{customerId}:
+    parameters:
+      - $ref: '#/components/parameters/customerId'
+    get:
+      tags: [Customers]
+      summary: Get customer by ID
+      responses:
+        '200':
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+    patch:
+      tags: [Customers]
+      summary: Update a customer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerUpdate'
+      responses:
+        '200':
+          description: Customer updated
+    delete:
+      tags: [Customers]
+      summary: Delete a customer
+      responses:
+        '204':
+          description: Customer deleted
+
+  /customers/{customerId}/balance:
+    get:
+      tags: [Customers]
+      summary: Get customer balance and aging
+      parameters:
+        - $ref: '#/components/parameters/customerId'
+      responses:
+        '200':
+          description: Customer balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerBalance'
+
+  # ============ INVOICES ============
+  /invoices:
+    get:
+      tags: [Invoices]
+      summary: List all invoices
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/InvoiceStatus'
+        - name: customerId
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/startDate'
+        - $ref: '#/components/parameters/endDate'
+      responses:
+        '200':
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceList'
+    post:
+      tags: [Invoices]
+      summary: Create a new invoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+      responses:
+        '201':
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+
+  /invoices/{invoiceId}:
+    parameters:
+      - $ref: '#/components/parameters/invoiceId'
+    get:
+      tags: [Invoices]
+      summary: Get invoice by ID
+      responses:
+        '200':
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+    patch:
+      tags: [Invoices]
+      summary: Update an invoice
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceUpdate'
+      responses:
+        '200':
+          description: Invoice updated
+    delete:
+      tags: [Invoices]
+      summary: Delete/void an invoice
+      responses:
+        '204':
+          description: Invoice deleted
+
+  /invoices/{invoiceId}/send:
+    post:
+      tags: [Invoices]
+      summary: Send invoice to customer
+      parameters:
+        - $ref: '#/components/parameters/invoiceId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Invoice sent
+
+  /invoices/{invoiceId}/pdf:
+    get:
+      tags: [Invoices]
+      summary: Download invoice as PDF
+      parameters:
+        - $ref: '#/components/parameters/invoiceId'
+      responses:
+        '200':
+          description: PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  # ============ PAYMENTS ============
+  /payments:
+    get:
+      tags: [Payments]
+      summary: List all payments received
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      responses:
+        '200':
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentList'
+    post:
+      tags: [Payments]
+      summary: Record a payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+      responses:
+        '201':
+          description: Payment recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+
+  /payments/{paymentId}:
+    parameters:
+      - $ref: '#/components/parameters/paymentId'
+    get:
+      tags: [Payments]
+      summary: Get payment by ID
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+    delete:
+      tags: [Payments]
+      summary: Void a payment
+      responses:
+        '204':
+          description: Payment voided
+
+  # ============ VENDORS ============
+  /vendors:
+    get:
+      tags: [Vendors]
+      summary: List all vendors
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+      responses:
+        '200':
+          description: List of vendors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VendorList'
+    post:
+      tags: [Vendors]
+      summary: Create a new vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VendorCreate'
+      responses:
+        '201':
+          description: Vendor created
+
+  /vendors/{vendorId}:
+    parameters:
+      - $ref: '#/components/parameters/vendorId'
+    get:
+      tags: [Vendors]
+      summary: Get vendor by ID
+      responses:
+        '200':
+          description: Vendor details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vendor'
+    patch:
+      tags: [Vendors]
+      summary: Update a vendor
+      responses:
+        '200':
+          description: Vendor updated
+    delete:
+      tags: [Vendors]
+      summary: Delete a vendor
+      responses:
+        '204':
+          description: Vendor deleted
+
+  # ============ EXPENSES / BILLS ============
+  /expenses:
+    get:
+      tags: [Expenses]
+      summary: List all expenses
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+        - name: vendorId
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of expenses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseList'
+    post:
+      tags: [Expenses]
+      summary: Create a new expense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseCreate'
+      responses:
+        '201':
+          description: Expense created
+
+  /expenses/{expenseId}:
+    parameters:
+      - $ref: '#/components/parameters/expenseId'
+    get:
+      tags: [Expenses]
+      summary: Get expense by ID
+      responses:
+        '200':
+          description: Expense details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+    patch:
+      tags: [Expenses]
+      summary: Update an expense
+      responses:
+        '200':
+          description: Expense updated
+    delete:
+      tags: [Expenses]
+      summary: Delete an expense
+      responses:
+        '204':
+          description: Expense deleted
+
+  /bills:
+    get:
+      tags: [Expenses]
+      summary: List all bills (accounts payable)
+      responses:
+        '200':
+          description: List of bills
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillList'
+    post:
+      tags: [Expenses]
+      summary: Create a new bill
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillCreate'
+      responses:
+        '201':
+          description: Bill created
+
+  /bills/{billId}/pay:
+    post:
+      tags: [Expenses]
+      summary: Record bill payment
+      parameters:
+        - name: billId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillPayment'
+      responses:
+        '200':
+          description: Bill payment recorded
+
+  # ============ PRODUCTS & SERVICES ============
+  /products:
+    get:
+      tags: [Products]
+      summary: List all products and services
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [product, service]
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductList'
+    post:
+      tags: [Products]
+      summary: Create a new product or service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Product created
+
+  /products/{productId}:
+    parameters:
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Products]
+      summary: Get product by ID
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+    patch:
+      tags: [Products]
+      summary: Update a product
+      responses:
+        '200':
+          description: Product updated
+    delete:
+      tags: [Products]
+      summary: Delete a product
+      responses:
+        '204':
+          description: Product deleted
+
+  # ============ JOURNAL ENTRIES ============
+  /journal-entries:
+    get:
+      tags: [Journal Entries]
+      summary: List all journal entries
+      parameters:
+        - $ref: '#/components/parameters/startDate'
+        - $ref: '#/components/parameters/endDate'
+      responses:
+        '200':
+          description: List of journal entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalEntryList'
+    post:
+      tags: [Journal Entries]
+      summary: Create a journal entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JournalEntryCreate'
+      responses:
+        '201':
+          description: Journal entry created
+
+  # ============ TAX ============
+  /tax-rates:
+    get:
+      tags: [Tax]
+      summary: List all tax rates
+      responses:
+        '200':
+          description: List of tax rates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxRateList'
+    post:
+      tags: [Tax]
+      summary: Create a tax rate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaxRateCreate'
+      responses:
+        '201':
+          description: Tax rate created
+
+  /tax-reports:
+    get:
+      tags: [Tax]
+      summary: Generate tax report
+      parameters:
+        - $ref: '#/components/parameters/startDate'
+        - $ref: '#/components/parameters/endDate'
+      responses:
+        '200':
+          description: Tax report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxReport'
+
+  # ============ REPORTS ============
+  /reports/profit-loss:
+    get:
+      tags: [Reports]
+      summary: Profit & Loss (Income Statement)
+      parameters:
+        - $ref: '#/components/parameters/startDate'
+        - $ref: '#/components/parameters/endDate'
+        - name: compareWith
+          in: query
+          schema:
+            type: string
+            enum: [previous_period, previous_year]
+      responses:
+        '200':
+          description: P&L Report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfitLossReport'
+
+  /reports/balance-sheet:
+    get:
+      tags: [Reports]
+      summary: Balance Sheet
+      parameters:
+        - name: asOf
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Balance Sheet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceSheetReport'
+
+  /reports/cash-flow:
+    get:
+      tags: [Reports]
+      summary: Cash Flow Statement
+      parameters:
+        - $ref: '#/components/parameters/startDate'
+        - $ref: '#/components/parameters/endDate'
+      responses:
+        '200':
+          description: Cash Flow Statement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashFlowReport'
+
+  /reports/accounts-receivable:
+    get:
+      tags: [Reports]
+      summary: Accounts Receivable Aging
+      responses:
+        '200':
+          description: AR Aging Report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgingReport'
+
+  /reports/accounts-payable:
+    get:
+      tags: [Reports]
+      summary: Accounts Payable Aging
+      responses:
+        '200':
+          description: AP Aging Report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgingReport'
+
+  /reports/trial-balance:
+    get:
+      tags: [Reports]
+      summary: Trial Balance
+      parameters:
+        - name: asOf
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Trial Balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrialBalanceReport'
+
+  /reports/general-ledger:
+    get:
+      tags: [Reports]
+      summary: General Ledger
+      parameters:
+        - $ref: '#/components/parameters/startDate'
+        - $ref: '#/components/parameters/endDate'
+        - name: accountId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: General Ledger Report
+
+# ============ COMPONENTS ============
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: /oauth/authorize
+          tokenUrl: /oauth/token
+          scopes:
+            read: Read access
+            write: Write access
+            admin: Admin access
+
+  parameters:
+    limitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 25
+        maximum: 100
+    offsetParam:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        default: 0
+    startDate:
+      name: startDate
+      in: query
+      schema:
+        type: string
+        format: date
+    endDate:
+      name: endDate
+      in: query
+      schema:
+        type: string
+        format: date
+    accountId:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+    customerId:
+      name: customerId
+      in: path
+      required: true
+      schema:
+        type: string
+    invoiceId:
+      name: invoiceId
+      in: path
+      required: true
+      schema:
+        type: string
+    paymentId:
+      name: paymentId
+      in: path
+      required: true
+      schema:
+        type: string
+    vendorId:
+      name: vendorId
+      in: path
+      required: true
+      schema:
+        type: string
+    expenseId:
+      name: expenseId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    # === Enums ===
+    AccountType:
+      type: string
+      enum:
+        - asset
+        - liability
+        - equity
+        - income
+        - expense
+
+    InvoiceStatus:
+      type: string
+      enum:
+        - draft
+        - sent
+        - viewed
+        - partial
+        - paid
+        - overdue
+        - voided
+
+    # === Money ===
+    Money:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: decimal
+        currency:
+          type: string
+          default: USD
+
+    # === Address ===
+    Address:
+      type: object
+      properties:
+        line1:
+          type: string
+        line2:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+
+    # === Account ===
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/AccountType'
+        accountNumber:
+          type: string
+        description:
+          type: string
+        balance:
+          $ref: '#/components/schemas/Money'
+        parentAccountId:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AccountCreate:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+        type:
+          $ref: '#/components/schemas/AccountType'
+        accountNumber:
+          type: string
+        description:
+          type: string
+        parentAccountId:
+          type: string
+        openingBalance:
+          $ref: '#/components/schemas/Money'
+
+    AccountUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        isActive:
+          type: boolean
+
+    AccountList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Account'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # === Customer ===
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        companyName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        billingAddress:
+          $ref: '#/components/schemas/Address'
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        taxId:
+          type: string
+        paymentTerms:
+          type: string
+        balance:
+          $ref: '#/components/schemas/Money'
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    CustomerCreate:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+        companyName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        billingAddress:
+          $ref: '#/components/schemas/Address'
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        taxId:
+          type: string
+        paymentTerms:
+          type: string
+          default: net30
+
+    CustomerUpdate:
+      type: object
+      properties:
+        displayName:
+          type: string
+        email:
+          type: string
+        isActive:
+          type: boolean
+
+    CustomerList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    CustomerBalance:
+      type: object
+      properties:
+        customerId:
+          type: string
+        totalBalance:
+          $ref: '#/components/schemas/Money'
+        current:
+          $ref: '#/components/schemas/Money'
+        overdue1to30:
+          $ref: '#/components/schemas/Money'
+        overdue31to60:
+          $ref: '#/components/schemas/Money'
+        overdue61to90:
+          $ref: '#/components/schemas/Money'
+        overdue90plus:
+          $ref: '#/components/schemas/Money'
+
+    # === Invoice ===
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+        invoiceNumber:
+          type: string
+        customerId:
+          type: string
+        customer:
+          $ref: '#/components/schemas/Customer'
+        status:
+          $ref: '#/components/schemas/InvoiceStatus'
+        issueDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        lineItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineItem'
+        subtotal:
+          $ref: '#/components/schemas/Money'
+        taxAmount:
+          $ref: '#/components/schemas/Money'
+        discountAmount:
+          $ref: '#/components/schemas/Money'
+        total:
+          $ref: '#/components/schemas/Money'
+        amountPaid:
+          $ref: '#/components/schemas/Money'
+        amountDue:
+          $ref: '#/components/schemas/Money'
+        notes:
+          type: string
+        terms:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    LineItem:
+      type: object
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: number
+        unitPrice:
+          $ref: '#/components/schemas/Money'
+        taxRateId:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Money'
+
+    InvoiceCreate:
+      type: object
+      required: [customerId, lineItems]
+      properties:
+        customerId:
+          type: string
+        issueDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        lineItems:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+              description:
+                type: string
+              quantity:
+                type: number
+              unitPrice:
+                type: number
+              taxRateId:
+                type: string
+        discountPercent:
+          type: number
+        notes:
+          type: string
+
+    InvoiceUpdate:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/InvoiceStatus'
+        dueDate:
+          type: string
+          format: date
+        notes:
+          type: string
+
+    InvoiceList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invoice'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # === Payment ===
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        paymentDate:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/Money'
+        paymentMethod:
+          type: string
+          enum: [cash, check, credit_card, bank_transfer, other]
+        referenceNumber:
+          type: string
+        invoicesApplied:
+          type: array
+          items:
+            type: object
+            properties:
+              invoiceId:
+                type: string
+              amount:
+                $ref: '#/components/schemas/Money'
+        depositAccountId:
+          type: string
+        memo:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    PaymentCreate:
+      type: object
+      required: [customerId, amount, paymentDate]
+      properties:
+        customerId:
+          type: string
+        paymentDate:
+          type: string
+          format: date
+        amount:
+          type: number
+        paymentMethod:
+          type: string
+        referenceNumber:
+          type: string
+        invoicesApplied:
+          type: array
+          items:
+            type: object
+            properties:
+              invoiceId:
+                type: string
+              amount:
+                type: number
+        depositAccountId:
+          type: string
+        memo:
+          type: string
+
+    PaymentList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # === Vendor ===
+    Vendor:
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        companyName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        taxId:
+          type: string
+        accountNumber:
+          type: string
+        paymentTerms:
+          type: string
+        balance:
+          $ref: '#/components/schemas/Money'
+        isActive:
+          type: boolean
+
+    VendorCreate:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+        companyName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        taxId:
+          type: string
+        paymentTerms:
+          type: string
+
+    VendorList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Vendor'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # === Expense ===
+    Expense:
+      type: object
+      properties:
+        id:
+          type: string
+        vendorId:
+          type: string
+        accountId:
+          type: string
+        paymentAccountId:
+          type: string
+        expenseDate:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/Money'
+        category:
+          type: string
+        description:
+          type: string
+        receiptUrl:
+          type: string
+        isBillable:
+          type: boolean
+        customerId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ExpenseCreate:
+      type: object
+      required: [accountId, amount, expenseDate]
+      properties:
+        vendorId:
+          type: string
+        accountId:
+          type: string
+        paymentAccountId:
+          type: string
+        expenseDate:
+          type: string
+          format: date
+        amount:
+          type: number
+        category:
+          type: string
+        description:
+          type: string
+        isBillable:
+          type: boolean
+        customerId:
+          type: string
+
+    ExpenseList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expense'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # === Pagination ===
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        hasMore:
+          type: boolean
+
+    # === Placeholder schemas (incomplete in spec) ===
+    TransactionList:
+      type: object
+    BillList:
+      type: object
+    BillCreate:
+      type: object
+    BillPayment:
+      type: object
+    Product:
+      type: object
+    ProductCreate:
+      type: object
+    ProductList:
+      type: object
+    JournalEntryList:
+      type: object
+    JournalEntryCreate:
+      type: object
+    TaxRateList:
+      type: object
+    TaxRateCreate:
+      type: object
+    TaxReport:
+      type: object
+    ProfitLossReport:
+      type: object
+    BalanceSheetReport:
+      type: object
+    CashFlowReport:
+      type: object
+    AgingReport:
+      type: object
+    TrialBalanceReport:
+      type: object
