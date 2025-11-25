@@ -22,6 +22,22 @@ export interface Customer {
   companyName?: string;
   email?: string;
   phone?: string;
+  website?: string;
+  billingAddress?: string;
+  shippingAddress?: string;
+  balance?: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface Vendor {
+  id: string;
+  displayName: string;
+  companyName?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  billingAddress?: string;
   balance?: number;
   isActive: boolean;
   createdAt: string;

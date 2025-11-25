@@ -66,6 +66,14 @@ export const paymentsApi = {
   create: (data: any) => api.post('/payments', data),
 };
 
+export const vendorsApi = {
+  getAll: (params?: any) => api.get('/vendors', { params }),
+  getById: (id: string) => api.get(`/vendors/${id}`),
+  create: (data: any) => api.post('/vendors', data),
+  update: (id: string, data: any) => api.put(`/vendors/${id}`, data),
+  delete: (id: string) => api.delete(`/vendors/${id}`),
+};
+
 export const reportsApi = {
   getProfitLoss: (params?: any) => api.get('/reports/profit-loss', { params }),
   getBalanceSheet: (params?: any) => api.get('/reports/balance-sheet', { params }),
