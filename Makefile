@@ -1,4 +1,4 @@
-.PHONY: help install install-api install-ui start start_api start_ui test test-api build build-api build-ui clean clean-api clean-ui
+.PHONY: help install install-api install-ui start start_api start_ui stop stop_api stop_ui test test-api build build-api build-ui clean clean-api clean-ui
 
 # Default target
 .DEFAULT_GOAL := help
@@ -44,6 +44,21 @@ start_ui: ## Start UI server only
 	@echo "$(CYAN)Starting UI server...$(RESET)"
 	@echo "UI will be available at http://localhost:3000"
 	cd accounting-ui && npm run dev
+
+# Stop targets
+stop: stop_api stop_ui ## Stop both API and UI servers
+
+stop_api: ## Stop API server
+	@echo "$(CYAN)Stopping API server...$(RESET)"
+	@-pkill -f "node.*accounting-api" || true
+	@-lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+	@echo "API server stopped"
+
+stop_ui: ## Stop UI server
+	@echo "$(CYAN)Stopping UI server...$(RESET)"
+	@-pkill -f "node.*accounting-ui" || true
+	@-lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+	@echo "UI server stopped"
 
 # Test targets
 test: test-api ## Run all tests
