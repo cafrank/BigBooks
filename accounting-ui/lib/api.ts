@@ -63,7 +63,10 @@ export const customersApi = {
 
 export const paymentsApi = {
   getAll: (params?: any) => api.get('/payments', { params }),
+  getById: (id: string) => api.get(`/payments/${id}`),
   create: (data: any) => api.post('/payments', data),
+  update: (id: string, data: any) => api.put(`/payments/${id}`, data),
+  delete: (id: string) => api.delete(`/payments/${id}`),
 };
 
 export const vendorsApi = {
@@ -72,6 +75,22 @@ export const vendorsApi = {
   create: (data: any) => api.post('/vendors', data),
   update: (id: string, data: any) => api.put(`/vendors/${id}`, data),
   delete: (id: string) => api.delete(`/vendors/${id}`),
+};
+
+export const billsApi = {
+  getAll: (params?: any) => api.get('/bills', { params }),
+  getById: (id: string) => api.get(`/bills/${id}`),
+  create: (data: any) => api.post('/bills', data),
+  update: (id: string, data: any) => api.put(`/bills/${id}`, data),
+  delete: (id: string) => api.delete(`/bills/${id}`),
+};
+
+export const expensesApi = {
+  getAll: (params?: any) => api.get('/expenses', { params }),
+  getById: (id: string) => api.get(`/expenses/${id}`),
+  create: (data: any) => api.post('/expenses', data),
+  update: (id: string, data: any) => api.put(`/expenses/${id}`, data),
+  delete: (id: string) => api.delete(`/expenses/${id}`),
 };
 
 export const reportsApi = {

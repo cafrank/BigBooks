@@ -94,6 +94,51 @@ export interface DashboardStats {
   invoicesChange: number;
 }
 
+export interface Bill {
+  id: string;
+  billNumber: string;
+  vendorId: string;
+  vendorName?: string;
+  status: 'draft' | 'open' | 'partial' | 'paid' | 'overdue' | 'voided';
+  billDate: string;
+  dueDate: string;
+  subtotal: number;
+  taxAmount: number;
+  total: number;
+  amountPaid: number;
+  amountDue: number;
+  currency: string;
+  lineItems?: BillLineItem[];
+  notes?: string;
+}
+
+export interface BillLineItem {
+  id?: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  taxAmount?: number;
+  category?: string;
+}
+
+export interface Expense {
+  id: string;
+  expenseNumber: string;
+  vendorId: string;
+  vendorName?: string;
+  expenseDate: string;
+  category: string;
+  paymentMethod: string;
+  amount: number;
+  taxAmount: number;
+  total: number;
+  description: string;
+  receiptUrl?: string;
+  notes?: string;
+  status: 'draft' | 'submitted' | 'approved' | 'reimbursed' | 'rejected';
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;

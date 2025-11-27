@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, MoreVertical, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -26,6 +26,20 @@ export default function VendorsPage() {
   useEffect(() => {
     loadVendors();
   }, []);
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete vendor "${name}"?`)) {
+      return;
+    }
+
+    try {
+      await vendorsApi.delete(id);
+      await loadVendors();
+    } catch (error) {
+      console.error('Failed to delete vendor:', error);
+      alert('Failed to delete vendor. Please try again.');
+    }
+  };
 
   const loadVendors = async () => {
     try {
@@ -92,9 +106,9 @@ export default function VendorsPage() {
           <p className="text-gray-600">Manage your vendor relationships</p>
         </div>
         <Link href="/vendors/new">
-          <Button>
+          <Button variant="outline">
             <Plus className="mr-2 h-4 w-4" />
-            New Vendor
+            Create Vendor
           </Button>
         </Link>
       </div>
@@ -120,7 +134,7 @@ export default function VendorsPage() {
               <TableHead>Phone</TableHead>
               <TableHead className="text-right">Balance</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead></TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -149,9 +163,31 @@ export default function VendorsPage() {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="sm">
-                    View
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Link href={`/bills/new?vendorId=${vendor.id}`}>
+                      <Button variant="ghost" size="sm" title="Create Bill">
+                        <FileText className="h-4 w-4 text-blue-600" />
+                      </Button>
+                    </Link>
+                    <Link href={`/vendors/${vendor.id}`}>
+                      <Button variant="ghost" size="sm" title="View">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Link href={`/vendors/${vendor.id}/edit`}>
+                      <Button variant="ghost" size="sm" title="Edit">
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(vendor.id, vendor.displayName)}
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

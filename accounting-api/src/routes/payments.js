@@ -136,6 +136,72 @@ paymentsRouter.get('/:id', [param('id').isUUID(), validate], async (req, res, ne
   }
 });
 
+// PUT /v1/payments/:id
+paymentsRouter.put('/:id', [
+  param('id').isUUID(),
+  body('customerId').isUUID(),
+  body('amount').isFloat({ min: 0.01 }),
+  body('paymentDate').isISO8601(),
+  body('paymentMethod').optional().isIn(['cash', 'check', 'credit_card', 'debit_card', 'bank_transfer', 'other']),
+  body('depositAccountId').optional().isUUID(),
+  body('invoicesApplied').optional().isArray(),
+  validate
+], async (req, res, next) => {
+  try {
+    const payment = await db.transaction(async (trx) => {
+      // Update payment
+      const [pmt] = await trx('payments')
+        .where({ id: req.params.id, organization_id: req.user.orgId })
+        .update({
+          customer_id: req.body.customerId,
+          payment_date: req.body.paymentDate,
+          amount: req.body.amount,
+          payment_method: req.body.paymentMethod,
+          reference_number: req.body.referenceNumber,
+          memo: req.body.memo,
+          updated_at: db.fn.now()
+        })
+        .returning('*');
+
+      if (!pmt) throw new AppError('Payment not found', 404);
+
+      // Get old invoice applications
+      const oldApplications = await trx('payment_applications')
+        .where('payment_id', req.params.id)
+        .select('invoice_id');
+
+      // Delete old applications
+      await trx('payment_applications').where('payment_id', req.params.id).del();
+
+      // Insert new applications
+      if (req.body.invoicesApplied?.length > 0) {
+        const applications = req.body.invoicesApplied.map(app => ({
+          payment_id: pmt.id,
+          invoice_id: app.invoiceId,
+          amount: app.amount
+        }));
+        await trx('payment_applications').insert(applications);
+      }
+
+      // Update all affected invoice statuses
+      const allInvoiceIds = new Set([
+        ...oldApplications.map(a => a.invoice_id),
+        ...(req.body.invoicesApplied || []).map(a => a.invoiceId)
+      ]);
+
+      for (const invoiceId of allInvoiceIds) {
+        await updateInvoiceStatus(trx, invoiceId);
+      }
+
+      return pmt;
+    });
+
+    res.json(await getPaymentById(payment.id, req.user.orgId));
+  } catch (err) {
+    next(err);
+  }
+});
+
 // DELETE /v1/payments/:id
 paymentsRouter.delete('/:id', [param('id').isUUID(), validate], async (req, res, next) => {
   try {

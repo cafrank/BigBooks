@@ -77,6 +77,7 @@ export default function NewCustomerPage() {
             Cancel
           </Button>
           <Button
+            variant="outline"
             onClick={handleSubmit(onSubmit)}
             isLoading={loading}
           >
@@ -196,6 +197,7 @@ export default function NewCustomerPage() {
               <CardContent className="space-y-2">
                 <Button
                   type="submit"
+                  variant="outline"
                   className="w-full"
                   isLoading={loading}
                 >

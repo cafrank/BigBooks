@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Filter, Download } from 'lucide-react';
+import { Plus, Filter, Download, Edit2, Trash2, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -25,6 +25,20 @@ export default function InvoicesPage() {
   useEffect(() => {
     loadInvoices();
   }, []);
+
+  const handleDelete = async (id: string, invoiceNumber: string) => {
+    if (!confirm(`Are you sure you want to delete invoice ${invoiceNumber}?`)) {
+      return;
+    }
+
+    try {
+      await invoicesApi.delete(id);
+      await loadInvoices();
+    } catch (error) {
+      console.error('Failed to delete invoice:', error);
+      alert('Failed to delete invoice. Please try again.');
+    }
+  };
 
   const loadInvoices = async () => {
     try {
@@ -123,9 +137,9 @@ export default function InvoicesPage() {
             Export
           </Button>
           <Link href="/invoices/new">
-            <Button>
+            <Button variant="outline">
               <Plus className="mr-2 h-4 w-4" />
-              New Invoice
+              Create Invoice
             </Button>
           </Link>
         </div>
@@ -142,7 +156,7 @@ export default function InvoicesPage() {
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead className="text-right">Amount Due</TableHead>
-              <TableHead></TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -171,9 +185,26 @@ export default function InvoicesPage() {
                   {formatCurrency(invoice.amountDue, invoice.currency)}
                 </TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="sm">
-                    View
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Link href={`/invoices/${invoice.id}`}>
+                      <Button variant="ghost" size="sm" title="View">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Link href={`/invoices/${invoice.id}/edit`}>
+                      <Button variant="ghost" size="sm" title="Edit">
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(invoice.id, invoice.invoiceNumber)}
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

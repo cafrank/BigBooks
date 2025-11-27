@@ -11,32 +11,31 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/utils';
-import { invoicesApi, customersApi } from '@/lib/api';
-import type { Customer } from '@/types';
+import { billsApi, vendorsApi } from '@/lib/api';
+import type { Vendor } from '@/types';
 
 const lineItemSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   quantity: z.number().min(0.0001, 'Quantity must be greater than 0'),
   unitPrice: z.number().min(0, 'Unit price must be 0 or greater'),
   taxRate: z.number().min(0).max(100).optional(),
+  category: z.string().optional(),
 });
 
-const invoiceSchema = z.object({
-  customerId: z.string().min(1, 'Customer is required'),
-  issueDate: z.string().min(1, 'Issue date is required'),
+const billSchema = z.object({
+  vendorId: z.string().min(1, 'Vendor is required'),
+  billDate: z.string().min(1, 'Bill date is required'),
   dueDate: z.string().min(1, 'Due date is required'),
   lineItems: z.array(lineItemSchema).min(1, 'At least one line item is required'),
   notes: z.string().optional(),
-  discountAmount: z.number().min(0).optional(),
-  shippingAmount: z.number().min(0).optional(),
 });
 
-type InvoiceFormData = z.infer<typeof invoiceSchema>;
+type BillFormData = z.infer<typeof billSchema>;
 
-export default function NewInvoicePage() {
+export default function NewBillPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(false);
 
   const {
@@ -46,14 +45,12 @@ export default function NewInvoicePage() {
     watch,
     setValue,
     formState: { errors },
-  } = useForm<InvoiceFormData>({
-    resolver: zodResolver(invoiceSchema),
+  } = useForm<BillFormData>({
+    resolver: zodResolver(billSchema),
     defaultValues: {
-      issueDate: new Date().toISOString().split('T')[0],
+      billDate: new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      lineItems: [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0 }],
-      discountAmount: 0,
-      shippingAmount: 0,
+      lineItems: [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, category: '' }],
     },
   });
 
@@ -63,29 +60,27 @@ export default function NewInvoicePage() {
   });
 
   const watchLineItems = watch('lineItems');
-  const watchDiscount = watch('discountAmount') || 0;
-  const watchShipping = watch('shippingAmount') || 0;
 
   useEffect(() => {
-    loadCustomers();
+    loadVendors();
 
-    // Pre-fill customer from query params if available
-    const customerId = searchParams.get('customerId');
-    if (customerId) {
-      setValue('customerId', customerId);
+    // Pre-fill vendor from query params if available
+    const vendorId = searchParams.get('vendorId');
+    if (vendorId) {
+      setValue('vendorId', vendorId);
     }
   }, []);
 
-  const loadCustomers = async () => {
+  const loadVendors = async () => {
     try {
-      const response = await customersApi.getAll();
-      setCustomers(response.data.data || []);
+      const response = await vendorsApi.getAll();
+      setVendors(response.data.data || []);
     } catch (error) {
-      console.error('Failed to load customers:', error);
+      console.error('Failed to load vendors:', error);
       // Mock data
-      setCustomers([
-        { id: '1', displayName: 'Acme Corporation', email: 'billing@acme.com', isActive: true, createdAt: '2024-01-01' },
-        { id: '2', displayName: 'Tech Solutions Inc', email: 'info@techsolutions.com', isActive: true, createdAt: '2024-01-01' },
+      setVendors([
+        { id: '1', displayName: 'Office Supplies Co', email: 'sales@officesupplies.com', isActive: true, createdAt: '2024-01-01' },
+        { id: '2', displayName: 'Tech Equipment Inc', email: 'info@techequipment.com', isActive: true, createdAt: '2024-01-01' },
       ]);
     }
   };
@@ -102,7 +97,7 @@ export default function NewInvoicePage() {
       return sum + tax;
     }, 0);
 
-    const total = subtotal + taxAmount + Number(watchShipping) - Number(watchDiscount);
+    const total = subtotal + taxAmount;
 
     return {
       subtotal,
@@ -113,14 +108,14 @@ export default function NewInvoicePage() {
 
   const totals = calculateTotals();
 
-  const onSubmit = async (data: InvoiceFormData) => {
+  const onSubmit = async (data: BillFormData) => {
     setLoading(true);
     try {
-      const response = await invoicesApi.create(data);
-      router.push(`/invoices/${response.data.id}`);
+      const response = await billsApi.create(data);
+      router.push(`/bills/${response.data.id}`);
     } catch (error: any) {
-      console.error('Failed to create invoice:', error);
-      alert(error.response?.data?.error || 'Failed to create invoice');
+      console.error('Failed to create bill:', error);
+      alert(error.response?.data?.error || 'Failed to create bill');
     } finally {
       setLoading(false);
     }
@@ -134,19 +129,19 @@ export default function NewInvoicePage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/invoices')}
+            onClick={() => router.push('/vendors')}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">New Invoice</h1>
-            <p className="text-gray-600">Create a new invoice for your customer</p>
+            <h1 className="text-2xl font-bold text-gray-900">New Bill</h1>
+            <p className="text-gray-600">Create a new bill from a vendor</p>
           </div>
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => router.push('/invoices')}
+            onClick={() => router.push('/vendors')}
           >
             Cancel
           </Button>
@@ -156,7 +151,7 @@ export default function NewInvoicePage() {
             isLoading={loading}
           >
             <Save className="mr-2 h-4 w-4" />
-            Create Invoice
+            Create Bill
           </Button>
         </div>
       </div>
@@ -168,24 +163,24 @@ export default function NewInvoicePage() {
             {/* Basic Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Invoice Information</CardTitle>
+                <CardTitle>Bill Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Select
-                  {...register('customerId')}
-                  label="Customer *"
-                  error={errors.customerId?.message}
+                  {...register('vendorId')}
+                  label="Vendor *"
+                  error={errors.vendorId?.message}
                   options={[
-                    { value: '', label: 'Select a customer' },
-                    ...customers.map((c) => ({ value: c.id, label: c.displayName })),
+                    { value: '', label: 'Select a vendor' },
+                    ...vendors.map((v) => ({ value: v.id, label: v.displayName })),
                   ]}
                 />
                 <div className="grid gap-4 md:grid-cols-2">
                   <Input
-                    {...register('issueDate')}
+                    {...register('billDate')}
                     type="date"
-                    label="Issue Date *"
-                    error={errors.issueDate?.message}
+                    label="Bill Date *"
+                    error={errors.billDate?.message}
                   />
                   <Input
                     {...register('dueDate')}
@@ -207,7 +202,7 @@ export default function NewInvoicePage() {
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      append({ description: '', quantity: 1, unitPrice: 0, taxRate: 0 })
+                      append({ description: '', quantity: 1, unitPrice: 0, taxRate: 0, category: '' })
                     }
                   >
                     <Plus className="mr-2 h-4 w-4" />
@@ -226,6 +221,13 @@ export default function NewInvoicePage() {
                           placeholder="Item description..."
                           error={errors.lineItems?.[index]?.description?.message}
                         />
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <Input
+                            {...register(`lineItems.${index}.category`)}
+                            label="Category"
+                            placeholder="Office Supplies, Equipment, etc."
+                          />
+                        </div>
                         <div className="grid gap-4 md:grid-cols-4">
                           <Input
                             {...register(`lineItems.${index}.quantity`, {
@@ -294,23 +296,7 @@ export default function NewInvoicePage() {
               <CardHeader>
                 <CardTitle>Additional Details</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Input
-                    {...register('discountAmount', { valueAsNumber: true })}
-                    type="number"
-                    step="0.01"
-                    label="Discount Amount"
-                    placeholder="0.00"
-                  />
-                  <Input
-                    {...register('shippingAmount', { valueAsNumber: true })}
-                    type="number"
-                    step="0.01"
-                    label="Shipping Amount"
-                    placeholder="0.00"
-                  />
-                </div>
+              <CardContent>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Notes
@@ -319,7 +305,7 @@ export default function NewInvoicePage() {
                     {...register('notes')}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Thank you for your business..."
+                    placeholder="Additional notes about this bill..."
                   />
                 </div>
               </CardContent>
@@ -330,7 +316,7 @@ export default function NewInvoicePage() {
           <div>
             <Card className="sticky top-6">
               <CardHeader>
-                <CardTitle>Invoice Summary</CardTitle>
+                <CardTitle>Bill Summary</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -342,18 +328,6 @@ export default function NewInvoicePage() {
                     <span className="text-gray-600">Tax</span>
                     <span className="font-medium">{formatCurrency(totals.taxAmount)}</span>
                   </div>
-                  {watchShipping > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Shipping</span>
-                      <span className="font-medium">{formatCurrency(watchShipping)}</span>
-                    </div>
-                  )}
-                  {watchDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600">
-                      <span>Discount</span>
-                      <span>-{formatCurrency(watchDiscount)}</span>
-                    </div>
-                  )}
                   <div className="border-t border-gray-200 pt-3">
                     <div className="flex justify-between">
                       <span className="font-bold text-gray-900">Total</span>
@@ -371,13 +345,13 @@ export default function NewInvoicePage() {
                     className="w-full"
                     isLoading={loading}
                   >
-                    Create Invoice
+                    Create Bill
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     className="w-full"
-                    onClick={() => router.push('/invoices')}
+                    onClick={() => router.push('/vendors')}
                   >
                     Cancel
                   </Button>

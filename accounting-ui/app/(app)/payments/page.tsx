@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, Edit2, Trash2, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import {
@@ -24,6 +24,20 @@ export default function PaymentsPage() {
   useEffect(() => {
     loadPayments();
   }, []);
+
+  const handleDelete = async (id: string, paymentNumber: string) => {
+    if (!confirm(`Are you sure you want to void payment ${paymentNumber}?`)) {
+      return;
+    }
+
+    try {
+      await paymentsApi.delete(id);
+      await loadPayments();
+    } catch (error) {
+      console.error('Failed to void payment:', error);
+      alert('Failed to void payment. Please try again.');
+    }
+  };
 
   const loadPayments = async () => {
     try {
@@ -87,9 +101,9 @@ export default function PaymentsPage() {
           <p className="text-gray-600">Track all payments received</p>
         </div>
         <Link href="/payments/new">
-          <Button>
+          <Button variant="outline">
             <Plus className="mr-2 h-4 w-4" />
-            Record Payment
+            Create Payment
           </Button>
         </Link>
       </div>
@@ -104,14 +118,19 @@ export default function PaymentsPage() {
               <TableHead>Payment Method</TableHead>
               <TableHead>Reference</TableHead>
               <TableHead className="text-right">Amount</TableHead>
-              <TableHead></TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {payments.map((payment) => (
               <TableRow key={payment.id}>
                 <TableCell className="font-medium">
-                  {payment.paymentNumber}
+                  <Link
+                    href={`/payments/${payment.id}`}
+                    className="text-primary-600 hover:underline"
+                  >
+                    {payment.paymentNumber}
+                  </Link>
                 </TableCell>
                 <TableCell>{payment.customerName}</TableCell>
                 <TableCell>{formatDate(payment.paymentDate)}</TableCell>
@@ -123,9 +142,26 @@ export default function PaymentsPage() {
                   {formatCurrency(payment.amount)}
                 </TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="sm">
-                    View
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Link href={`/payments/${payment.id}`}>
+                      <Button variant="ghost" size="sm" title="View">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Link href={`/payments/${payment.id}/edit`}>
+                      <Button variant="ghost" size="sm" title="Edit">
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(payment.id, payment.paymentNumber)}
+                      title="Void Payment"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

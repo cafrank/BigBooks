@@ -174,6 +174,7 @@ export default function NewPaymentPage() {
             Cancel
           </Button>
           <Button
+            variant="outline"
             onClick={handleSubmit(onSubmit)}
             isLoading={loading}
           >
@@ -285,6 +286,7 @@ export default function NewPaymentPage() {
               <CardContent className="space-y-2">
                 <Button
                   type="submit"
+                  variant="outline"
                   className="w-full"
                   isLoading={loading}
                 >

@@ -26,7 +26,7 @@ services:
       dockerfile: Dockerfile
     container_name: accounting-api
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3000
       DB_HOST: postgres
       DB_PORT: 5432
@@ -42,8 +42,8 @@ services:
     volumes:
       - ./src:/app/src
       - /app/node_modules
-    # networks:
-    #   - accounting-network
+    networks:
+      - accounting-network
     command: sh -c "npx knex migrate:latest && node src/index.js"
 
   redis:
