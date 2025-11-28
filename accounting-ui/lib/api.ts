@@ -83,6 +83,7 @@ export const billsApi = {
   create: (data: any) => api.post('/bills', data),
   update: (id: string, data: any) => api.put(`/bills/${id}`, data),
   delete: (id: string) => api.delete(`/bills/${id}`),
+  pay: (id: string, data: any) => api.post(`/bills/${id}/pay`, data),
 };
 
 export const expensesApi = {
@@ -91,6 +92,16 @@ export const expensesApi = {
   create: (data: any) => api.post('/expenses', data),
   update: (id: string, data: any) => api.put(`/expenses/${id}`, data),
   delete: (id: string) => api.delete(`/expenses/${id}`),
+};
+
+export const accountsApi = {
+  getAll: (params?: any) => api.get('/accounts', { params }),
+  getById: (id: string) => api.get(`/accounts/${id}`),
+  create: (data: any) => api.post('/accounts', data),
+  update: (id: string, data: any) => api.patch(`/accounts/${id}`, data),
+  delete: (id: string) => api.delete(`/accounts/${id}`),
+  getTransactions: (id: string, params?: any) => api.get(`/accounts/${id}/transactions`, { params }),
+  getBalanceHistory: (id: string, params?: any) => api.get(`/accounts/${id}/balance-history`, { params }),
 };
 
 export const reportsApi = {

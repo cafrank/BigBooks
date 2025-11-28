@@ -11,10 +11,11 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/utils';
-import { billsApi, vendorsApi } from '@/lib/api';
-import type { Vendor } from '@/types';
+import { billsApi, vendorsApi, accountsApi } from '@/lib/api';
+import type { Vendor, Account } from '@/types';
 
 const lineItemSchema = z.object({
+  accountId: z.string().min(1, 'Account is required'),
   description: z.string().min(1, 'Description is required'),
   quantity: z.number().min(0.0001, 'Quantity must be greater than 0'),
   unitPrice: z.number().min(0, 'Unit price must be 0 or greater'),
@@ -36,6 +37,7 @@ export default function NewBillPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
 
   const {
@@ -50,7 +52,7 @@ export default function NewBillPage() {
     defaultValues: {
       billDate: new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      lineItems: [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, category: '' }],
+      lineItems: [{ accountId: '', description: '', quantity: 1, unitPrice: 0, taxRate: 0, category: '' }],
     },
   });
 
@@ -63,6 +65,7 @@ export default function NewBillPage() {
 
   useEffect(() => {
     loadVendors();
+    loadAccounts();
 
     // Pre-fill vendor from query params if available
     const vendorId = searchParams.get('vendorId');
@@ -82,6 +85,16 @@ export default function NewBillPage() {
         { id: '1', displayName: 'Office Supplies Co', email: 'sales@officesupplies.com', isActive: true, createdAt: '2024-01-01' },
         { id: '2', displayName: 'Tech Equipment Inc', email: 'info@techequipment.com', isActive: true, createdAt: '2024-01-01' },
       ]);
+    }
+  };
+
+  const loadAccounts = async () => {
+    try {
+      // Load expense accounts for bill line items
+      const response = await accountsApi.getAll({ type: 'expense', isActive: true });
+      setAccounts(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to load accounts:', error);
     }
   };
 
@@ -111,7 +124,22 @@ export default function NewBillPage() {
   const onSubmit = async (data: BillFormData) => {
     setLoading(true);
     try {
-      const response = await billsApi.create(data);
+      // Transform the data to match API expectations
+      const billData = {
+        vendorId: data.vendorId,
+        billDate: data.billDate,
+        dueDate: data.dueDate,
+        lineItems: data.lineItems.map((item) => ({
+          accountId: item.accountId,
+          description: item.description,
+          quantity: item.quantity,
+          amount: item.quantity * item.unitPrice,
+        })),
+        taxAmount: totals.taxAmount,
+        memo: data.notes,
+      };
+
+      const response = await billsApi.create(billData);
       router.push(`/bills/${response.data.id}`);
     } catch (error: any) {
       console.error('Failed to create bill:', error);
@@ -202,7 +230,7 @@ export default function NewBillPage() {
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      append({ description: '', quantity: 1, unitPrice: 0, taxRate: 0, category: '' })
+                      append({ accountId: '', description: '', quantity: 1, unitPrice: 0, taxRate: 0, category: '' })
                     }
                   >
                     <Plus className="mr-2 h-4 w-4" />
@@ -215,6 +243,18 @@ export default function NewBillPage() {
                   {fields.map((field, index) => (
                     <div key={field.id} className="rounded-lg border border-gray-200 p-4">
                       <div className="space-y-4">
+                        <Select
+                          {...register(`lineItems.${index}.accountId`)}
+                          label="Expense Account *"
+                          error={errors.lineItems?.[index]?.accountId?.message}
+                          options={[
+                            { value: '', label: 'Select an account' },
+                            ...accounts.map((a) => ({
+                              value: a.id,
+                              label: a.accountNumber ? `${a.accountNumber} - ${a.name}` : a.name,
+                            })),
+                          ]}
+                        />
                         <Input
                           {...register(`lineItems.${index}.description`)}
                           label="Description *"

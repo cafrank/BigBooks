@@ -139,6 +139,57 @@ export interface Expense {
   status: 'draft' | 'submitted' | 'approved' | 'reimbursed' | 'rejected';
 }
 
+export interface Account {
+  id: string;
+  name: string;
+  type: 'asset' | 'liability' | 'equity' | 'income' | 'expense';
+  subtype?: string;
+  accountNumber?: string;
+  description?: string;
+  parentAccountId?: string;
+  currency: string;
+  isActive: boolean;
+  isSystemAccount: boolean;
+  balance?: {
+    amount: number;
+    currency: string;
+    debits: number;
+    credits: number;
+  };
+  childAccounts?: {
+    id: string;
+    name: string;
+    accountNumber?: string;
+    isActive: boolean;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccountTransaction {
+  id: string;
+  date: string;
+  type: string;
+  description: string;
+  debit: {
+    amount: number;
+    currency: string;
+  };
+  credit: {
+    amount: number;
+    currency: string;
+  };
+  balance?: {
+    amount: number;
+    currency: string;
+  };
+  sourceId?: string;
+  sourceLineId?: string;
+  customerId?: string;
+  vendorId?: string;
+  createdAt: string;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;

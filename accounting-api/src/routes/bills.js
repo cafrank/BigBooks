@@ -29,6 +29,34 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /v1/bills/:id
+router.get('/:id', [
+  param('id').isUUID(),
+  validate
+], async (req, res, next) => {
+  try {
+    const bill = await db('bills')
+      .leftJoin('vendors', 'bills.vendor_id', 'vendors.id')
+      .where({ 'bills.id': req.params.id, 'bills.organization_id': req.user.orgId })
+      .select('bills.*', 'vendors.display_name as vendor_name')
+      .first();
+
+    if (!bill) throw new AppError('Bill not found', 404);
+
+    const lineItems = await db('bill_line_items')
+      .leftJoin('accounts', 'bill_line_items.account_id', 'accounts.id')
+      .where('bill_line_items.bill_id', bill.id)
+      .select(
+        'bill_line_items.*',
+        'accounts.name as account_name',
+        'accounts.account_number'
+      )
+      .orderBy('bill_line_items.sort_order');
+
+    res.json(formatBillDetail(bill, lineItems));
+  } catch (err) { next(err); }
+});
+
 // POST /v1/bills
 router.post('/', [
   body('vendorId').isUUID(),
@@ -147,6 +175,24 @@ router.post('/:id/pay', [
           vendor_id: bill.vendor_id
         }
       ]);
+
+      // Update bill amount_due and status
+      const newAmountDue = parseFloat(bill.amount_due) - req.body.amount;
+      let newStatus = bill.status;
+
+      if (newAmountDue <= 0) {
+        newStatus = 'paid';
+      } else if (newAmountDue < parseFloat(bill.total)) {
+        newStatus = 'partial';
+      }
+
+      await trx('bills')
+        .where({ id: bill.id })
+        .update({
+          amount_due: newAmountDue,
+          status: newStatus,
+          updated_at: trx.fn.now()
+        });
     });
 
     res.json({ message: 'Payment recorded successfully' });
@@ -162,9 +208,43 @@ function formatBillSummary(b) {
     status: b.status,
     billDate: b.bill_date,
     dueDate: b.due_date,
-    total: { amount: parseFloat(b.total), currency: 'USD' },
-    amountDue: { amount: parseFloat(b.amount_due), currency: 'USD' },
+    total: parseFloat(b.total),
+    amountDue: parseFloat(b.amount_due),
+    amountPaid: parseFloat(b.total) - parseFloat(b.amount_due),
+    subtotal: parseFloat(b.subtotal),
+    taxAmount: parseFloat(b.tax_amount || 0),
     createdAt: b.created_at
+  };
+}
+
+function formatBillDetail(bill, lineItems) {
+  return {
+    id: bill.id,
+    billNumber: bill.bill_number,
+    vendorId: bill.vendor_id,
+    vendorName: bill.vendor_name,
+    status: bill.status,
+    billDate: bill.bill_date,
+    dueDate: bill.due_date,
+    subtotal: parseFloat(bill.subtotal),
+    taxAmount: parseFloat(bill.tax_amount || 0),
+    total: parseFloat(bill.total),
+    amountDue: parseFloat(bill.amount_due),
+    amountPaid: parseFloat(bill.total) - parseFloat(bill.amount_due),
+    notes: bill.memo,
+    lineItems: lineItems.map(li => ({
+      id: li.id,
+      accountId: li.account_id,
+      accountName: li.account_name,
+      accountNumber: li.account_number,
+      description: li.description,
+      quantity: parseFloat(li.quantity),
+      unitPrice: parseFloat(li.unit_price),
+      amount: parseFloat(li.amount),
+      category: li.category
+    })),
+    createdAt: bill.created_at,
+    updatedAt: bill.updated_at
   };
 }
 

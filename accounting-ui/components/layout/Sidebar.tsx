@@ -11,6 +11,8 @@ import {
   TrendingUp,
   Settings,
   Building2,
+  Landmark,
+  Receipt,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,7 +27,9 @@ const navigation: NavItem[] = [
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Payments', href: '/payments', icon: CreditCard },
+  { name: 'Bills', href: '/bills', icon: Receipt },
   { name: 'Vendors', href: '/vendors', icon: Building2 },
+  { name: 'Accounts', href: '/accounts', icon: Landmark },
   { name: 'Reports', href: '/reports', icon: TrendingUp },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
