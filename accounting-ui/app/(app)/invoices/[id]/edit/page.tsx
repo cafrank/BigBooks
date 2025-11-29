@@ -5,14 +5,21 @@ import { useParams, useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Plus, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, Plus, Save } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { formatCurrency } from '@/lib/utils';
-import { invoicesApi, customersApi } from '@/lib/api';
-import type { Customer, Invoice } from '@/types';
+import { LineItem } from '@/components/invoices/LineItem';
+import { InvoiceSummary } from '@/components/invoices/InvoiceSummary';
+import { useInvoiceData } from '@/hooks/useInvoiceData';
+import { useInvoiceTotals } from '@/hooks/useInvoiceTotals';
+import {
+  cleanInvoiceFormData,
+  transformInvoiceToFormData,
+  type InvoiceFormData,
+} from '@/lib/invoice-utils';
+import { invoicesApi } from '@/lib/api';
 
 const lineItemSchema = z.object({
   id: z.string().optional(),
@@ -32,15 +39,13 @@ const invoiceSchema = z.object({
   shippingAmount: z.number().min(0).optional(),
 });
 
-type InvoiceFormData = z.infer<typeof invoiceSchema>;
-
 export default function EditInvoicePage() {
   const params = useParams();
   const router = useRouter();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const invoiceId = params.id as string;
+  const [submitting, setSubmitting] = useState(false);
+
+  const { invoice, customers, loading, error } = useInvoiceData(invoiceId);
 
   const {
     register,
@@ -67,149 +72,53 @@ export default function EditInvoicePage() {
   const watchDiscount = watch('discountAmount') || 0;
   const watchShipping = watch('shippingAmount') || 0;
 
+  const totals = useInvoiceTotals(watchLineItems, watchDiscount, watchShipping);
+
+  // Load invoice data into form when available
   useEffect(() => {
-    loadCustomers();
-    if (params.id) {
-      loadInvoice(params.id as string);
+    if (invoice) {
+      reset(transformInvoiceToFormData(invoice));
     }
-  }, [params.id]);
-
-  const loadCustomers = async () => {
-    try {
-      const response = await customersApi.getAll();
-      setCustomers(response.data.data || []);
-    } catch (error) {
-      console.error('Failed to load customers:', error);
-      setCustomers([
-        { id: '1', displayName: 'Acme Corporation', email: 'billing@acme.com', isActive: true, createdAt: '2024-01-01' },
-        { id: '2', displayName: 'Tech Solutions Inc', email: 'info@techsolutions.com', isActive: true, createdAt: '2024-01-01' },
-      ]);
-    }
-  };
-
-  const loadInvoice = async (id: string) => {
-    try {
-      const response = await invoicesApi.getById(id);
-      const data = response.data;
-      setInvoice(data);
-
-      // Reset form with loaded data
-      reset({
-        customerId: data.customerId,
-        issueDate: data.issueDate,
-        dueDate: data.dueDate,
-        lineItems: data.lineItems?.map(item => ({
-          id: item.id,
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          taxRate: ((item.taxAmount || 0) / item.amount) * 100,
-        })) || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0 }],
-        notes: data.notes,
-        discountAmount: 0,
-        shippingAmount: 0,
-      });
-    } catch (error) {
-      console.error('Failed to load invoice:', error);
-      // Mock data
-      const mockData = {
-        id,
-        invoiceNumber: 'INV-1001',
-        customerId: '1',
-        customerName: 'Acme Corporation',
-        status: 'draft' as const,
-        issueDate: '2024-01-15',
-        dueDate: '2024-02-15',
-        subtotal: 5000,
-        taxAmount: 400,
-        total: 5400,
-        amountPaid: 0,
-        amountDue: 5400,
-        currency: 'USD',
-        notes: 'Thank you for your business!',
-        lineItems: [
-          {
-            id: '1',
-            description: 'Web Development Services',
-            quantity: 40,
-            unitPrice: 125,
-            amount: 5000,
-            taxAmount: 400,
-          },
-        ],
-      };
-      setInvoice(mockData);
-      reset({
-        customerId: mockData.customerId,
-        issueDate: mockData.issueDate,
-        dueDate: mockData.dueDate,
-        lineItems: mockData.lineItems.map(item => ({
-          id: item.id,
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          taxRate: ((item.taxAmount || 0) / item.amount) * 100,
-        })),
-        notes: mockData.notes,
-        discountAmount: 0,
-        shippingAmount: 0,
-      });
-    } finally {
-      setInitialLoading(false);
-    }
-  };
-
-  const calculateTotals = () => {
-    const subtotal = watchLineItems.reduce((sum, item) => {
-      return sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
-    }, 0);
-
-    const taxAmount = watchLineItems.reduce((sum, item) => {
-      const itemTotal = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
-      const tax = itemTotal * ((Number(item.taxRate) || 0) / 100);
-      return sum + tax;
-    }, 0);
-
-    const total = subtotal + taxAmount + Number(watchShipping) - Number(watchDiscount);
-
-    return {
-      subtotal,
-      taxAmount,
-      total,
-    };
-  };
-
-  const totals = calculateTotals();
+  }, [invoice, reset]);
 
   const onSubmit = async (data: InvoiceFormData) => {
-    if (!params.id) return;
-
-    setLoading(true);
+    setSubmitting(true);
     try {
-      // Clean up data - remove NaN values and ensure proper types
-      const cleanData = {
-        ...data,
-        discountAmount: isNaN(data.discountAmount!) ? 0 : (data.discountAmount || 0),
-        shippingAmount: isNaN(data.shippingAmount!) ? 0 : (data.shippingAmount || 0),
-        lineItems: data.lineItems.map(item => ({
-          ...item,
-          taxRate: isNaN(item.taxRate!) ? 0 : (item.taxRate || 0),
-        })),
-      };
-      await invoicesApi.update(params.id as string, cleanData);
-      router.push(`/invoices/${params.id}`);
-    } catch (error: any) {
-      console.error('Failed to update invoice:', error);
-      alert(error.response?.data?.error || 'Failed to update invoice');
+      const cleanData = cleanInvoiceFormData(data);
+      await invoicesApi.update(invoiceId, cleanData);
+      router.push(`/invoices/${invoiceId}`);
+    } catch (err: any) {
+      console.error('Failed to update invoice:', err);
+      alert(err.response?.data?.error || 'Failed to update invoice');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  if (initialLoading) {
+  const handleCancel = () => {
+    router.push(`/invoices/${invoiceId}`);
+  };
+
+  if (loading) {
     return (
       <div className="flex h-full items-center justify-center p-6">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-full items-center justify-center p-6">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Error Loading Invoice
+          </h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => router.push('/invoices')}>
+            Back to Invoices
+          </Button>
+        </div>
       </div>
     );
   }
@@ -222,7 +131,7 @@ export default function EditInvoicePage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push(`/invoices/${params.id}`)}
+            onClick={handleCancel}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -236,13 +145,13 @@ export default function EditInvoicePage() {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => router.push(`/invoices/${params.id}`)}
+            onClick={handleCancel}
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit(onSubmit)}
-            isLoading={loading}
+            isLoading={submitting}
           >
             <Save className="mr-2 h-4 w-4" />
             Save Changes
@@ -306,69 +215,16 @@ export default function EditInvoicePage() {
               <CardContent>
                 <div className="space-y-4">
                   {fields.map((field, index) => (
-                    <div key={field.id} className="rounded-lg border border-gray-200 p-4">
-                      <div className="space-y-4">
-                        <Input
-                          {...register(`lineItems.${index}.description`)}
-                          label="Description *"
-                          placeholder="Item description..."
-                          error={errors.lineItems?.[index]?.description?.message}
-                        />
-                        <div className="grid gap-4 md:grid-cols-4">
-                          <Input
-                            {...register(`lineItems.${index}.quantity`, {
-                              valueAsNumber: true,
-                            })}
-                            type="number"
-                            step="0.01"
-                            label="Quantity *"
-                            error={errors.lineItems?.[index]?.quantity?.message}
-                          />
-                          <Input
-                            {...register(`lineItems.${index}.unitPrice`, {
-                              valueAsNumber: true,
-                            })}
-                            type="number"
-                            step="0.01"
-                            label="Unit Price *"
-                            error={errors.lineItems?.[index]?.unitPrice?.message}
-                          />
-                          <Input
-                            {...register(`lineItems.${index}.taxRate`, {
-                              valueAsNumber: true,
-                            })}
-                            type="number"
-                            step="0.01"
-                            label="Tax Rate (%)"
-                            placeholder="0"
-                          />
-                          <div className="flex items-end">
-                            <div className="flex-1">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Amount
-                              </label>
-                              <div className="flex h-10 items-center rounded-md border border-gray-300 bg-gray-50 px-3 text-sm font-medium">
-                                {formatCurrency(
-                                  (watchLineItems[index]?.quantity || 0) *
-                                    (watchLineItems[index]?.unitPrice || 0)
-                                )}
-                              </div>
-                            </div>
-                            {fields.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="ml-2"
-                                onClick={() => remove(index)}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-600" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <LineItem
+                      key={field.id}
+                      index={index}
+                      register={register}
+                      errors={errors}
+                      quantity={watchLineItems[index]?.quantity || 0}
+                      unitPrice={watchLineItems[index]?.unitPrice || 0}
+                      canRemove={fields.length > 1}
+                      onRemove={() => remove(index)}
+                    />
                   ))}
                 </div>
               </CardContent>
@@ -413,61 +269,14 @@ export default function EditInvoicePage() {
 
           {/* Sidebar - Totals */}
           <div>
-            <Card className="sticky top-6">
-              <CardHeader>
-                <CardTitle>Invoice Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium">{formatCurrency(totals.subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tax</span>
-                    <span className="font-medium">{formatCurrency(totals.taxAmount)}</span>
-                  </div>
-                  {watchShipping > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Shipping</span>
-                      <span className="font-medium">{formatCurrency(watchShipping)}</span>
-                    </div>
-                  )}
-                  {watchDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600">
-                      <span>Discount</span>
-                      <span>-{formatCurrency(watchDiscount)}</span>
-                    </div>
-                  )}
-                  <div className="border-t border-gray-200 pt-3">
-                    <div className="flex justify-between">
-                      <span className="font-bold text-gray-900">Total</span>
-                      <span className="text-xl font-bold text-gray-900">
-                        {formatCurrency(totals.total)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-2">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    isLoading={loading}
-                  >
-                    Save Changes
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => router.push(`/invoices/${params.id}`)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <InvoiceSummary
+              totals={totals}
+              shippingAmount={watchShipping}
+              discountAmount={watchDiscount}
+              loading={submitting}
+              onSave={handleSubmit(onSubmit)}
+              onCancel={handleCancel}
+            />
           </div>
         </div>
       </form>
