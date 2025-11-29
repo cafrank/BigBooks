@@ -1,10 +1,16 @@
 #!/bin/bash
 
+
+
+#  -d '{"email":"demo@bigbooks.com","password":"demo123456"}' | jq -r '.token')
+#
+
+
 # Get auth token
 echo "Getting auth token..."
 TOKEN=$(curl -s -X POST http://localhost:3000/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"demo@bigbooks.com","password":"demo123456"}' | jq -r '.token')
+  -d '{"email":"admin@example.com","password":"password123"}' | jq -r '.token')
 
 echo "Token: ${TOKEN:0:20}..."
 

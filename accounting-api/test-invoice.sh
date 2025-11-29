@@ -4,9 +4,17 @@
 echo "Getting auth token..."
 TOKEN=$(curl -s -X POST http://localhost:3000/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"demo@bigbooks.com","password":"demo123456"}' | jq -r '.token')
+  -d '{"email":"admin@example.com","password":"password123"}' | jq -r '.token')
 
 echo "Token: ${TOKEN:0:20}..."
+
+# Get auth token
+#echo "Getting auth token..."
+#TOKEN=$(curl -s -X POST http://localhost:3000/v1/auth/login \
+#  -H "Content-Type: application/json" \
+#  -d '{"email":"demo@bigbooks.com","password":"demo123456"}' | jq -r '.token')
+#
+#echo "Token: ${TOKEN:0:20}..."
 
 # Create invoice
 echo -e "\nCreating invoice..."
@@ -27,5 +35,11 @@ curl -v -X POST http://localhost:3000/v1/invoices \
     ],
     "notes": "Test invoice from script"
   }'
+
+# Retrieve invoice
+echo -e "\nRetrieve invoice..."
+curl -v -X GET http://localhost:3000/v1/invoices/d6680ba7-d3fe-4225-95c9-3cd2db6ee64e \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" | jq
 
 echo -e "\n\nDone"
