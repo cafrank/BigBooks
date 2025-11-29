@@ -186,7 +186,17 @@ export default function EditInvoicePage() {
 
     setLoading(true);
     try {
-      await invoicesApi.update(params.id as string, data);
+      // Clean up data - remove NaN values and ensure proper types
+      const cleanData = {
+        ...data,
+        discountAmount: isNaN(data.discountAmount!) ? 0 : (data.discountAmount || 0),
+        shippingAmount: isNaN(data.shippingAmount!) ? 0 : (data.shippingAmount || 0),
+        lineItems: data.lineItems.map(item => ({
+          ...item,
+          taxRate: isNaN(item.taxRate!) ? 0 : (item.taxRate || 0),
+        })),
+      };
+      await invoicesApi.update(params.id as string, cleanData);
       router.push(`/invoices/${params.id}`);
     } catch (error: any) {
       console.error('Failed to update invoice:', error);

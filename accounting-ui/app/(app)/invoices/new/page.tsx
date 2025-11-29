@@ -116,7 +116,17 @@ export default function NewInvoicePage() {
   const onSubmit = async (data: InvoiceFormData) => {
     setLoading(true);
     try {
-      const response = await invoicesApi.create(data);
+      // Clean up data - remove NaN values and ensure proper types
+      const cleanData = {
+        ...data,
+        discountAmount: isNaN(data.discountAmount!) ? 0 : (data.discountAmount || 0),
+        shippingAmount: isNaN(data.shippingAmount!) ? 0 : (data.shippingAmount || 0),
+        lineItems: data.lineItems.map(item => ({
+          ...item,
+          taxRate: isNaN(item.taxRate!) ? 0 : (item.taxRate || 0),
+        })),
+      };
+      const response = await invoicesApi.create(cleanData);
       router.push(`/invoices/${response.data.id}`);
     } catch (error: any) {
       console.error('Failed to create invoice:', error);
