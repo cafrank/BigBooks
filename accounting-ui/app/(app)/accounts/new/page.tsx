@@ -252,19 +252,10 @@ export default function NewAccountPage() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={loading}
+                  isLoading={loading}
                 >
-                  {loading ? (
-                    <>
-                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Create Account
-                    </>
-                  )}
+                  <Save className="mr-2 h-4 w-4" />
+                  Create Account
                 </Button>
                 <Button
                   type="button"

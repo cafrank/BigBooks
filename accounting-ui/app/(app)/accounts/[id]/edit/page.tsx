@@ -224,19 +224,10 @@ export default function EditAccountPage() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={saving}
+                  isLoading={saving}
                 >
-                  {saving ? (
-                    <>
-                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Changes
-                    </>
-                  )}
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
                 </Button>
                 <Button
                   type="button"

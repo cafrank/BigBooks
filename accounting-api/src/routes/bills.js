@@ -208,11 +208,11 @@ function formatBillSummary(b) {
     status: b.status,
     billDate: b.bill_date,
     dueDate: b.due_date,
-    total: parseFloat(b.total),
-    amountDue: parseFloat(b.amount_due),
-    amountPaid: parseFloat(b.total) - parseFloat(b.amount_due),
-    subtotal: parseFloat(b.subtotal),
-    taxAmount: parseFloat(b.tax_amount || 0),
+    total: { amount: parseFloat(b.total), currency: 'USD' },
+    amountDue: { amount: parseFloat(b.amount_due), currency: 'USD' },
+    amountPaid: { amount: parseFloat(b.total) - parseFloat(b.amount_due), currency: 'USD' },
+    subtotal: { amount: parseFloat(b.subtotal), currency: 'USD' },
+    taxAmount: { amount: parseFloat(b.tax_amount || 0), currency: 'USD' },
     createdAt: b.created_at
   };
 }
@@ -226,11 +226,11 @@ function formatBillDetail(bill, lineItems) {
     status: bill.status,
     billDate: bill.bill_date,
     dueDate: bill.due_date,
-    subtotal: parseFloat(bill.subtotal),
-    taxAmount: parseFloat(bill.tax_amount || 0),
-    total: parseFloat(bill.total),
-    amountDue: parseFloat(bill.amount_due),
-    amountPaid: parseFloat(bill.total) - parseFloat(bill.amount_due),
+    subtotal: { amount: parseFloat(bill.subtotal), currency: 'USD' },
+    taxAmount: { amount: parseFloat(bill.tax_amount || 0), currency: 'USD' },
+    total: { amount: parseFloat(bill.total), currency: 'USD' },
+    amountDue: { amount: parseFloat(bill.amount_due), currency: 'USD' },
+    amountPaid: { amount: parseFloat(bill.total) - parseFloat(bill.amount_due), currency: 'USD' },
     notes: bill.memo,
     lineItems: lineItems.map(li => ({
       id: li.id,

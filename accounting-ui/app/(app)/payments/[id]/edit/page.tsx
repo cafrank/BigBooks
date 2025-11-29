@@ -114,7 +114,7 @@ export default function EditPaymentPage() {
     try {
       const response = await invoicesApi.getAll({ customerId });
       const unpaidInvoices = (response.data.data || []).filter(
-        (inv: Invoice) => inv.amountDue > 0
+        (inv: Invoice) => inv.amountDue.amount > 0
       );
       setInvoices(unpaidInvoices);
     } catch (error) {
@@ -132,7 +132,7 @@ export default function EditPaymentPage() {
           taxAmount: 400,
           total: 5400,
           amountPaid: 0,
-          amountDue: 5400,
+          amountDue: { amount: 5400, currency: 'USD' },
           currency: 'USD',
         },
       ]);
@@ -143,7 +143,7 @@ export default function EditPaymentPage() {
     try {
       const response = await invoicesApi.getById(invoiceId);
       const invoice = response.data;
-      setValue('amount', invoice.amountDue);
+      setValue('amount', invoice.amountDue.amount);
     } catch (error) {
       console.error('Failed to load invoice:', error);
     }
@@ -237,7 +237,7 @@ export default function EditPaymentPage() {
                       { value: '', label: 'General payment (not linked to invoice)' },
                       ...invoices.map((inv) => ({
                         value: inv.id,
-                        label: `${inv.invoiceNumber} - ${formatCurrency(inv.amountDue)} due`,
+                        label: `${inv.invoiceNumber} - ${formatCurrency(inv.amountDue.amount, inv.amountDue.currency)} due`,
                       })),
                     ]}
                   />

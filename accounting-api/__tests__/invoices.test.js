@@ -90,6 +90,56 @@ describe('Invoices API', () => {
     });
   });
 
+  describe('PUT /v1/invoices/:id', () => {
+    it('should update an invoice with new line items', async () => {
+      // Create invoice first
+      const createRes = await request(app)
+        .post('/v1/invoices')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          customerId: customerId,
+          lineItems: [
+            { description: 'Original Item', quantity: 1, unitPrice: 1000 }
+          ]
+        });
+
+      // Update the invoice
+      const updateRes = await request(app)
+        .put(`/v1/invoices/${createRes.body.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          customerId: customerId,
+          issueDate: '2024-03-20',
+          dueDate: '2024-04-20',
+          lineItems: [
+            { description: 'Updated Item 1', quantity: 2, unitPrice: 500 },
+            { description: 'New Item 2', quantity: 1, unitPrice: 250 }
+          ],
+          notes: 'Updated notes'
+        });
+
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.lineItems).toHaveLength(2);
+      expect(updateRes.body.lineItems[0].description).toBe('Updated Item 1');
+      expect(updateRes.body.total.amount).toBe(1250);
+      expect(updateRes.body.notes).toBe('Updated notes');
+    });
+
+    it('should return 404 for non-existent invoice', async () => {
+      const res = await request(app)
+        .put('/v1/invoices/00000000-0000-0000-0000-000000000000')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          customerId: customerId,
+          lineItems: [
+            { description: 'Item', quantity: 1, unitPrice: 100 }
+          ]
+        });
+
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe('GET /v1/invoices/:id', () => {
     it('should retrieve invoice details', async () => {
       const createRes = await request(app)

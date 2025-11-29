@@ -53,7 +53,7 @@ export default function PaymentsPage() {
           customerId: '1',
           customerName: 'Acme Corporation',
           paymentDate: '2024-02-10',
-          amount: 5400,
+          amount: { amount: 5400, currency: 'USD' },
           paymentMethod: 'bank_transfer',
           referenceNumber: 'TXN-20240210-001',
         },
@@ -63,7 +63,7 @@ export default function PaymentsPage() {
           customerId: '2',
           customerName: 'Tech Solutions Inc',
           paymentDate: '2024-02-15',
-          amount: 1500,
+          amount: { amount: 1500, currency: 'USD' },
           paymentMethod: 'credit_card',
           referenceNumber: 'TXN-20240215-002',
         },
@@ -139,7 +139,7 @@ export default function PaymentsPage() {
                   {payment.referenceNumber || '-'}
                 </TableCell>
                 <TableCell className="text-right font-medium">
-                  {formatCurrency(payment.amount)}
+                  {formatCurrency(payment.amount.amount, payment.amount.currency)}
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-2">

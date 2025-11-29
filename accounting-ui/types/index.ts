@@ -51,12 +51,21 @@ export interface Invoice {
   status: 'draft' | 'sent' | 'viewed' | 'partial' | 'paid' | 'overdue' | 'voided';
   issueDate: string;
   dueDate: string;
-  subtotal: number;
-  taxAmount: number;
-  total: number;
-  amountPaid: number;
-  amountDue: number;
-  currency: string;
+  subtotal?: number;
+  taxAmount?: number;
+  total?: {
+    amount: number;
+    currency: string;
+  };
+  amountPaid?: {
+    amount: number;
+    currency: string;
+  };
+  amountDue: {
+    amount: number;
+    currency: string;
+  };
+  currency?: string;
   lineItems?: InvoiceLineItem[];
   notes?: string;
 }
@@ -77,7 +86,10 @@ export interface Payment {
   customerId: string;
   customerName?: string;
   paymentDate: string;
-  amount: number;
+  amount: {
+    amount: number;
+    currency: string;
+  };
   paymentMethod: string;
   referenceNumber?: string;
   memo?: string;

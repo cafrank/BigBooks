@@ -59,6 +59,8 @@ router.post('/', [
   body('lineItems.*.unitPrice').isFloat({ min: 0 }),
   body('lineItems.*.productId').optional().isUUID(),
   body('lineItems.*.taxRateId').optional().isUUID(),
+  body('lineItems.*.taxRate').optional().isFloat({ min: 0, max: 100 }),
+  body('lineItems.*.discountPercent').optional().isFloat({ min: 0, max: 100 }),
   body('discountAmount').optional().isFloat({ min: 0 }),
   body('shippingAmount').optional().isFloat({ min: 0 }),
   body('notes').optional().trim(),
@@ -150,6 +152,109 @@ router.get('/:id', [
       throw new AppError('Invoice not found', 404);
     }
     res.json(invoice);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /v1/invoices/:id - Full invoice update
+router.put('/:id', [
+  param('id').isUUID(),
+  body('customerId').isUUID(),
+  body('issueDate').optional().isISO8601(),
+  body('dueDate').optional().isISO8601(),
+  body('lineItems').isArray({ min: 1 }),
+  body('lineItems.*.description').notEmpty(),
+  body('lineItems.*.quantity').isFloat({ min: 0.0001 }),
+  body('lineItems.*.unitPrice').isFloat({ min: 0 }),
+  body('lineItems.*.productId').optional().isUUID(),
+  body('lineItems.*.taxRateId').optional().isUUID(),
+  body('lineItems.*.taxRate').optional().isFloat({ min: 0, max: 100 }),
+  body('lineItems.*.discountPercent').optional().isFloat({ min: 0, max: 100 }),
+  body('discountAmount').optional().isFloat({ min: 0 }),
+  body('shippingAmount').optional().isFloat({ min: 0 }),
+  body('notes').optional().trim(),
+  validate
+], async (req, res, next) => {
+  try {
+    const invoice = await db.transaction(async (trx) => {
+      // Check if invoice exists
+      const existingInvoice = await trx('invoices')
+        .where({ id: req.params.id, organization_id: req.user.orgId })
+        .first();
+
+      if (!existingInvoice) {
+        throw new AppError('Invoice not found', 404);
+      }
+
+      // Prevent editing paid invoices (optional - remove if you want to allow this)
+      if (parseFloat(existingInvoice.amount_paid) > 0) {
+        throw new AppError('Cannot edit invoice with payments. Please void payments first.', 400);
+      }
+
+      // Calculate line items
+      const lineItems = req.body.lineItems.map((item) => {
+        const amount = item.quantity * item.unitPrice;
+        const discount = amount * ((item.discountPercent || 0) / 100);
+        const subtotal = amount - discount;
+        const tax = subtotal * ((item.taxRate || 0) / 100);
+
+        return {
+          ...item,
+          amount: subtotal,
+          taxAmount: tax
+        };
+      });
+
+      const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+      const taxAmount = lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
+      const discountAmount = req.body.discountAmount || 0;
+      const shippingAmount = req.body.shippingAmount || 0;
+      const total = subtotal + taxAmount + shippingAmount - discountAmount;
+
+      // Update invoice
+      const [inv] = await trx('invoices')
+        .where({ id: req.params.id, organization_id: req.user.orgId })
+        .update({
+          customer_id: req.body.customerId,
+          issue_date: req.body.issueDate || existingInvoice.issue_date,
+          due_date: req.body.dueDate || existingInvoice.due_date,
+          subtotal,
+          tax_amount: taxAmount,
+          discount_amount: discountAmount,
+          shipping_amount: shippingAmount,
+          total,
+          amount_due: total - parseFloat(existingInvoice.amount_paid),
+          notes: req.body.notes,
+          terms: req.body.terms,
+          updated_at: trx.fn.now()
+        })
+        .returning('*');
+
+      // Delete old line items
+      await trx('invoice_line_items').where('invoice_id', req.params.id).del();
+
+      // Insert new line items
+      const lines = lineItems.map((item, idx) => ({
+        invoice_id: inv.id,
+        product_id: item.productId,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        discount_percent: item.discountPercent || 0,
+        tax_rate_id: item.taxRateId,
+        tax_amount: item.taxAmount,
+        amount: item.amount,
+        sort_order: idx
+      }));
+
+      await trx('invoice_line_items').insert(lines);
+
+      return inv;
+    });
+
+    const fullInvoice = await getInvoiceById(invoice.id, req.user.orgId);
+    res.json(fullInvoice);
   } catch (err) {
     next(err);
   }
