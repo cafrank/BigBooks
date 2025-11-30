@@ -68,9 +68,9 @@ export default function BillsPage() {
 
   // Calculate summary stats
   const summary = filteredBills.reduce((acc, bill) => {
-    acc.total += bill.total || 0;
-    acc.amountDue += bill.amountDue || 0;
-    acc.amountPaid += bill.amountPaid || 0;
+    acc.total += typeof bill.total === 'object' ? bill.total.amount : (bill.total || 0);
+    acc.amountDue += typeof bill.amountDue === 'object' ? bill.amountDue.amount : (bill.amountDue || 0);
+    acc.amountPaid += typeof bill.amountPaid === 'object' ? bill.amountPaid.amount : (bill.amountPaid || 0);
     if (bill.status === 'overdue') acc.overdueCount++;
     if (bill.status === 'open' || bill.status === 'partial') acc.openCount++;
     return acc;
@@ -241,15 +241,21 @@ export default function BillsPage() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(bill.total)}
+                    {formatCurrency(
+                      typeof bill.total === 'object' ? bill.total.amount : (bill.total || 0),
+                      typeof bill.total === 'object' ? bill.total.currency : 'USD'
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <span className={
-                      bill.amountDue > 0
+                      (typeof bill.amountDue === 'object' ? bill.amountDue.amount : bill.amountDue) > 0
                         ? 'font-medium text-red-600'
                         : 'text-green-600'
                     }>
-                      {formatCurrency(bill.amountDue)}
+                      {formatCurrency(
+                        typeof bill.amountDue === 'object' ? bill.amountDue.amount : (bill.amountDue || 0),
+                        typeof bill.amountDue === 'object' ? bill.amountDue.currency : 'USD'
+                      )}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -266,7 +272,7 @@ export default function BillsPage() {
                           <Eye className="h-4 w-4" />
                         </Button>
                       </Link>
-                      {(bill.status === 'open' || bill.status === 'partial') && bill.amountDue > 0 && (
+                      {(bill.status === 'open' || bill.status === 'partial') && (typeof bill.amountDue === 'object' ? bill.amountDue.amount : bill.amountDue) > 0 && (
                         <Link href={`/bills/${bill.id}?action=pay`}>
                           <Button variant="ghost" size="sm" title="Record Payment">
                             <DollarSign className="h-4 w-4 text-green-600" />

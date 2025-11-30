@@ -178,7 +178,7 @@ function NewBillPageContent() {
             onClick={handleSubmit(onSubmit)}
             isLoading={loading}
           >
-            <Save className="mr-2 h-4 w-4" />
+            {!loading && <Save className="mr-2 h-4 w-4" />}
             Create Bill
           </Button>
         </div>

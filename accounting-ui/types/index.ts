@@ -125,23 +125,28 @@ export interface Bill {
   status: 'draft' | 'open' | 'partial' | 'paid' | 'overdue' | 'voided';
   billDate: string;
   dueDate: string;
-  subtotal: number;
-  taxAmount: number;
-  total: number;
-  amountPaid: number;
-  amountDue: number;
-  currency: string;
+  subtotal: number | CurrencyAmount;
+  taxAmount: number | CurrencyAmount;
+  total: number | CurrencyAmount;
+  amountPaid: number | CurrencyAmount;
+  amountDue: number | CurrencyAmount;
+  currency?: string;
   lineItems?: BillLineItem[];
   notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BillLineItem {
   id?: string;
+  accountId?: string;
+  accountName?: string;
+  accountNumber?: string;
   description: string;
   quantity: number;
-  unitPrice: number;
-  amount: number;
-  taxAmount?: number;
+  unitPrice: number | CurrencyAmount;
+  amount: number | CurrencyAmount;
+  taxAmount?: number | CurrencyAmount;
   category?: string;
 }
 

@@ -63,9 +63,12 @@ function BillDetailPageContent() {
       const response = await billsApi.getById(id);
       setBill(response.data);
       // Set default payment amount to remaining balance
+      const amountDue = typeof response.data.amountDue === 'object'
+        ? response.data.amountDue.amount
+        : (response.data.amountDue || 0);
       setPaymentData(prev => ({
         ...prev,
-        amount: response.data.amountDue || 0,
+        amount: amountDue,
       }));
     } catch (error) {
       console.error('Failed to load bill:', error);
@@ -161,7 +164,7 @@ function BillDetailPageContent() {
           </div>
         </div>
         <div className="flex gap-2">
-          {(bill.status === 'open' || bill.status === 'partial') && bill.amountDue > 0 && (
+          {(bill.status === 'open' || bill.status === 'partial') && (typeof bill.amountDue === 'object' ? bill.amountDue.amount : bill.amountDue) > 0 && (
             <Button
               variant="outline"
               onClick={() => setShowPaymentModal(true)}
@@ -240,7 +243,10 @@ function BillDetailPageContent() {
                         </TableCell>
                         <TableCell className="text-right">{item.quantity}</TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatCurrency(item.amount)}
+                          {formatCurrency(
+                            typeof item.amount === 'object' ? item.amount.amount : (item.amount || 0),
+                            typeof item.amount === 'object' ? item.amount.currency : 'USD'
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -266,35 +272,54 @@ function BillDetailPageContent() {
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">{formatCurrency(bill.subtotal)}</span>
+                  <span className="font-medium">
+                    {formatCurrency(
+                      typeof bill.subtotal === 'object' ? bill.subtotal.amount : (bill.subtotal || 0),
+                      typeof bill.subtotal === 'object' ? bill.subtotal.currency : 'USD'
+                    )}
+                  </span>
                 </div>
-                {bill.taxAmount > 0 && (
+                {(typeof bill.taxAmount === 'object' ? bill.taxAmount.amount : bill.taxAmount) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Tax</span>
-                    <span className="font-medium">{formatCurrency(bill.taxAmount)}</span>
+                    <span className="font-medium">
+                      {formatCurrency(
+                        typeof bill.taxAmount === 'object' ? bill.taxAmount.amount : (bill.taxAmount || 0),
+                        typeof bill.taxAmount === 'object' ? bill.taxAmount.currency : 'USD'
+                      )}
+                    </span>
                   </div>
                 )}
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex justify-between">
                     <span className="font-bold text-gray-900">Total</span>
                     <span className="text-xl font-bold text-gray-900">
-                      {formatCurrency(bill.total)}
+                      {formatCurrency(
+                        typeof bill.total === 'object' ? bill.total.amount : (bill.total || 0),
+                        typeof bill.total === 'object' ? bill.total.currency : 'USD'
+                      )}
                     </span>
                   </div>
                 </div>
-                {bill.amountPaid > 0 && (
+                {(typeof bill.amountPaid === 'object' ? bill.amountPaid.amount : bill.amountPaid) > 0 && (
                   <>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Amount Paid</span>
                       <span className="font-medium text-green-600">
-                        {formatCurrency(bill.amountPaid)}
+                        {formatCurrency(
+                          typeof bill.amountPaid === 'object' ? bill.amountPaid.amount : (bill.amountPaid || 0),
+                          typeof bill.amountPaid === 'object' ? bill.amountPaid.currency : 'USD'
+                        )}
                       </span>
                     </div>
                     <div className="border-t border-gray-200 pt-3">
                       <div className="flex justify-between">
                         <span className="font-bold text-gray-900">Amount Due</span>
                         <span className="text-xl font-bold text-red-600">
-                          {formatCurrency(bill.amountDue)}
+                          {formatCurrency(
+                            typeof bill.amountDue === 'object' ? bill.amountDue.amount : (bill.amountDue || 0),
+                            typeof bill.amountDue === 'object' ? bill.amountDue.currency : 'USD'
+                          )}
                         </span>
                       </div>
                     </div>
@@ -305,7 +330,7 @@ function BillDetailPageContent() {
           </Card>
 
           {/* Payment History */}
-          {bill.amountPaid > 0 && (
+          {(typeof bill.amountPaid === 'object' ? bill.amountPaid.amount : bill.amountPaid) > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Payment History</CardTitle>
@@ -313,7 +338,10 @@ function BillDetailPageContent() {
               <CardContent>
                 <div className="text-sm text-gray-600">
                   Total Paid: <span className="font-medium text-green-600">
-                    {formatCurrency(bill.amountPaid)}
+                    {formatCurrency(
+                      typeof bill.amountPaid === 'object' ? bill.amountPaid.amount : (bill.amountPaid || 0),
+                      typeof bill.amountPaid === 'object' ? bill.amountPaid.currency : 'USD'
+                    )}
                   </span>
                 </div>
               </CardContent>
@@ -346,11 +374,14 @@ function BillDetailPageContent() {
                   step="0.01"
                   value={paymentData.amount}
                   onChange={(e) => setPaymentData({ ...paymentData, amount: parseFloat(e.target.value) })}
-                  max={bill.amountDue}
+                  max={typeof bill.amountDue === 'object' ? bill.amountDue.amount : bill.amountDue}
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Maximum: {formatCurrency(bill.amountDue)}
+                  Maximum: {formatCurrency(
+                    typeof bill.amountDue === 'object' ? bill.amountDue.amount : (bill.amountDue || 0),
+                    typeof bill.amountDue === 'object' ? bill.amountDue.currency : 'USD'
+                  )}
                 </p>
               </div>
 
