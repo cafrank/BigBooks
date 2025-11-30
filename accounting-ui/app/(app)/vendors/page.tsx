@@ -18,8 +18,12 @@ import { formatCurrency } from '@/lib/utils';
 import { vendorsApi } from '@/lib/api';
 import type { Vendor } from '@/types';
 
+interface VendorWithBalance extends Vendor {
+  computedBalance?: number;
+}
+
 export default function VendorsPage() {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [vendors, setVendors] = useState<VendorWithBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -44,7 +48,28 @@ export default function VendorsPage() {
   const loadVendors = async () => {
     try {
       const response = await vendorsApi.getAll();
-      setVendors(response.data.data || []);
+      const vendorsList = response.data.data || [];
+
+      // Fetch balance for each vendor
+      const vendorsWithBalances = await Promise.all(
+        vendorsList.map(async (vendor: Vendor) => {
+          try {
+            const balanceResponse = await vendorsApi.getBalance(vendor.id);
+            return {
+              ...vendor,
+              computedBalance: balanceResponse.data.totalBalance?.amount || 0
+            };
+          } catch (error) {
+            console.error(`Failed to load balance for vendor ${vendor.id}:`, error);
+            return {
+              ...vendor,
+              computedBalance: 0
+            };
+          }
+        })
+      );
+
+      setVendors(vendorsWithBalances);
     } catch (error) {
       console.error('Failed to load vendors:', error);
       // Use mock data for demo
@@ -151,7 +176,7 @@ export default function VendorsPage() {
                 <TableCell>{vendor.email}</TableCell>
                 <TableCell>{vendor.phone}</TableCell>
                 <TableCell className="text-right">
-                  {formatCurrency(vendor.balance || 0)}
+                  {formatCurrency(vendor.computedBalance || 0)}
                 </TableCell>
                 <TableCell>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
