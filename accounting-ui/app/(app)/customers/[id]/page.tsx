@@ -75,9 +75,9 @@ export default function CustomerDetailPage() {
           dueDate: '2024-02-15',
           subtotal: 5000,
           taxAmount: 400,
-          total: 5400,
-          amountPaid: 0,
-          amountDue: 5400,
+          total: { amount: 5400, currency: 'USD' },
+          amountPaid: { amount: 0, currency: 'USD' },
+          amountDue: { amount: 5400, currency: 'USD' },
           currency: 'USD',
         },
       ]);
@@ -278,7 +278,10 @@ export default function CustomerDetailPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatCurrency(invoice.total, invoice.currency)}
+                          {formatCurrency(
+                            typeof invoice.total === 'object' ? invoice.total.amount : (invoice.total || 0),
+                            typeof invoice.total === 'object' ? invoice.total.currency : 'USD'
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

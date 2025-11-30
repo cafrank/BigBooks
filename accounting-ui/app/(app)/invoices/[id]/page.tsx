@@ -47,9 +47,9 @@ export default function InvoiceDetailPage() {
         dueDate: '2024-02-15',
         subtotal: 5000,
         taxAmount: 400,
-        total: 5400,
-        amountPaid: 0,
-        amountDue: 5400,
+        total: { amount: 5400, currency: 'USD' },
+        amountPaid: { amount: 0, currency: 'USD' },
+        amountDue: { amount: 5400, currency: 'USD' },
         currency: 'USD',
         notes: 'Thank you for your business!',
         lineItems: [
@@ -194,13 +194,19 @@ export default function InvoiceDetailPage() {
                 <div>
                   <p className="text-sm text-gray-600">Amount Due</p>
                   <p className="text-lg font-bold text-gray-900">
-                    {formatCurrency(invoice.amountDue, invoice.currency)}
+                    {formatCurrency(
+                      typeof invoice.amountDue === 'object' ? invoice.amountDue.amount : invoice.amountDue,
+                      typeof invoice.amountDue === 'object' ? invoice.amountDue.currency : 'USD'
+                    )}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Amount Paid</p>
                   <p className="font-medium">
-                    {formatCurrency(invoice.amountPaid, invoice.currency)}
+                    {formatCurrency(
+                      typeof invoice.amountPaid === 'object' ? invoice.amountPaid.amount : (invoice.amountPaid || 0),
+                      typeof invoice.amountPaid === 'object' ? invoice.amountPaid.currency : 'USD'
+                    )}
                   </p>
                 </div>
               </div>
@@ -223,10 +229,16 @@ export default function InvoiceDetailPage() {
                         <TableCell>{item.description}</TableCell>
                         <TableCell className="text-right">{item.quantity}</TableCell>
                         <TableCell className="text-right">
-                          {formatCurrency(item.unitPrice, invoice.currency)}
+                          {formatCurrency(
+                            typeof item.unitPrice === 'object' ? item.unitPrice.amount : (item.unitPrice || 0),
+                            typeof item.unitPrice === 'object' ? item.unitPrice.currency : 'USD'
+                          )}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatCurrency(item.amount, invoice.currency)}
+                          {formatCurrency(
+                            typeof item.amount === 'object' ? item.amount.amount : (item.amount || 0),
+                            typeof item.amount === 'object' ? item.amount.currency : 'USD'
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -239,15 +251,24 @@ export default function InvoiceDetailPage() {
                     <div className="w-64 space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Subtotal</span>
-                        <span>{formatCurrency(invoice.subtotal, invoice.currency)}</span>
+                        <span>{formatCurrency(
+                          typeof invoice.subtotal === 'object' ? invoice.subtotal.amount : (invoice.subtotal || 0),
+                          typeof invoice.subtotal === 'object' ? invoice.subtotal.currency : 'USD'
+                        )}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Tax</span>
-                        <span>{formatCurrency(invoice.taxAmount, invoice.currency)}</span>
+                        <span>{formatCurrency(
+                          typeof invoice.taxAmount === 'object' ? invoice.taxAmount.amount : (invoice.taxAmount || 0),
+                          typeof invoice.taxAmount === 'object' ? invoice.taxAmount.currency : 'USD'
+                        )}</span>
                       </div>
                       <div className="flex justify-between border-t border-gray-200 pt-2 font-bold">
                         <span>Total</span>
-                        <span>{formatCurrency(invoice.total, invoice.currency)}</span>
+                        <span>{formatCurrency(
+                          typeof invoice.total === 'object' ? invoice.total.amount : (invoice.total || 0),
+                          typeof invoice.total === 'object' ? invoice.total.currency : 'USD'
+                        )}</span>
                       </div>
                     </div>
                   </div>
@@ -284,7 +305,7 @@ export default function InvoiceDetailPage() {
                     Mark as Sent
                   </Button>
                 )}
-                {invoice.amountDue > 0 && invoice.status !== 'draft' && (
+                {(typeof invoice.amountDue === 'object' ? invoice.amountDue.amount : invoice.amountDue) > 0 && invoice.status !== 'draft' && (
                   <Button
                     className="w-full justify-start"
                     onClick={() => router.push(`/payments/new?invoiceId=${invoice.id}`)}
@@ -293,16 +314,14 @@ export default function InvoiceDetailPage() {
                     Record Payment
                   </Button>
                 )}
-                {invoice.status !== 'voided' && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => handleStatusUpdate('voided')}
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    Void Invoice
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => handleStatusUpdate('voided')}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Void Invoice
+                </Button>
               </CardContent>
             </Card>
           )}

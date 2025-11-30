@@ -114,7 +114,7 @@ export default function EditPaymentPage() {
     try {
       const response = await invoicesApi.getAll({ customerId });
       const unpaidInvoices = (response.data.data || []).filter(
-        (inv: Invoice) => inv.amountDue.amount > 0
+        (inv: Invoice) => (typeof inv.amountDue === 'object' ? inv.amountDue.amount : inv.amountDue) > 0
       );
       setInvoices(unpaidInvoices);
     } catch (error) {
@@ -130,8 +130,8 @@ export default function EditPaymentPage() {
           dueDate: '2024-02-15',
           subtotal: 5000,
           taxAmount: 400,
-          total: 5400,
-          amountPaid: 0,
+          total: { amount: 5400, currency: 'USD' },
+          amountPaid: { amount: 0, currency: 'USD' },
           amountDue: { amount: 5400, currency: 'USD' },
           currency: 'USD',
         },
@@ -237,7 +237,10 @@ export default function EditPaymentPage() {
                       { value: '', label: 'General payment (not linked to invoice)' },
                       ...invoices.map((inv) => ({
                         value: inv.id,
-                        label: `${inv.invoiceNumber} - ${formatCurrency(inv.amountDue.amount, inv.amountDue.currency)} due`,
+                        label: `${inv.invoiceNumber} - ${formatCurrency(
+                          typeof inv.amountDue === 'object' ? inv.amountDue.amount : inv.amountDue,
+                          typeof inv.amountDue === 'object' ? inv.amountDue.currency : 'USD'
+                        )} due`,
                       })),
                     ]}
                   />

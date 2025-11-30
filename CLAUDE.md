@@ -42,42 +42,60 @@ The system maintains ledger integrity through triggers and uses PostgreSQL enums
 
 ## Common Commands
 
-### Development Workflow
+The build system uses standardized `make` commands that work from both the root directory and subdirectories (`accounting-api/` or `accounting-ui/`).
 
-**Start both servers** (use from project root):
+### Quick Reference
+
+Run `make` or `make help` from any directory to see available commands.
+
+### Standard Commands (Work from root or subdirectories)
+
+**Development**:
 ```bash
-make start
-# API: http://localhost:3001
-# UI: http://localhost:3000
+make dev            # Start development server(s) with auto-reload
+                    # From root: starts both API & UI
+                    # From subdirectory: starts that service only
+                    # API: http://localhost:3000
+                    # UI: http://localhost:3001
 ```
 
-**Start individual servers**:
+**Testing**:
 ```bash
-make start_api  # API only on :3001
-make start_ui   # UI only on :3000
+make test           # Run tests
+                    # From root: runs all tests
+                    # From subdirectory: runs tests for that service
 ```
 
-**Stop servers**:
+**Production**:
 ```bash
-make stop       # Stop both
-make stop_api   # Stop API only
-make stop_ui    # Stop UI only
+make build          # Build for production
+make run            # Run production server(s)
 ```
 
-### Installation
-
+**Maintenance**:
 ```bash
-make install         # Install all dependencies
-make install-api     # Install API dependencies only
-make install-ui      # Install UI dependencies only
+make install        # Install dependencies
+make clean          # Remove node_modules and build artifacts
+make stop           # Stop running server(s)
 ```
 
-### Testing
+### Service-Specific Commands (From root only)
+
+```bash
+make dev-api        # Start API development server only
+make dev-ui         # Start UI development server only
+make test-api       # Run API tests only
+make test-ui        # Run UI tests only
+make clean-api      # Clean API artifacts only
+make clean-ui       # Clean UI artifacts only
+```
+
+### Testing Details
 
 **Run all tests**:
 ```bash
-make test           # Currently runs API tests
-cd accounting-api && npm test
+make test           # From root runs all tests
+cd accounting-api && make test  # From subdirectory
 ```
 
 **Run specific test file**:
@@ -97,47 +115,51 @@ npm run test:watch
 
 ### Database Management
 
-**Setup development database** (requires Docker):
+**From root or from accounting-api/**:
 ```bash
-make db-setup       # Start PostgreSQL via docker-compose
+make db-setup       # Setup PostgreSQL via docker-compose
+make db-migrate     # Run database migrations
+make db-seed        # Seed database with sample data
+make db-reset       # Reset database (drop, recreate, migrate, seed)
 ```
 
-**Run migrations**:
+**Additional database commands** (from accounting-api/ only):
 ```bash
-make db-migrate
-cd accounting-api && npm run migrate
+make db-shell       # Open PostgreSQL shell
+npm run migrate:rollback  # Rollback last migration
 ```
 
-**Seed database**:
-```bash
-make db-seed
-cd accounting-api && npm run seed
-```
+**Development Seed Data**: The `make db-seed` command populates the database with comprehensive sample data:
+- Organization: Demo Company
+- Users: admin@example.com and demo@example.com (password: password123)
+- 20 Chart of Accounts entries (assets, liabilities, equity, income, expenses)
+- 4 customers, 3 vendors, 4 products/services
+- 3 sample invoices (sent, partial, draft) and 2 bills (open, paid)
+- Configured tax rates and document sequences
 
-**Reset database** (drop, recreate, migrate, seed):
+See `accounting-api/seeds/README.md` for complete details.
+
+### Examples
+
 ```bash
+# From project root - start everything
+make dev
+
+# From project root - start just the API
+make dev-api
+
+# From accounting-api/ - same as 'make dev-api' from root
+cd accounting-api && make dev
+
+# From accounting-ui/ - start just the UI
+cd accounting-ui && make dev
+
+# Clean everything and reinstall
+make clean
+make install
+
+# Full database reset
 make db-reset
-```
-
-**Rollback migration**:
-```bash
-cd accounting-api && npm run migrate:rollback
-```
-
-### Build
-
-```bash
-make build          # Build both API and UI
-make build-api      # Build API only
-make build-ui       # Build UI only
-```
-
-### Clean
-
-```bash
-make clean          # Remove node_modules and build artifacts
-make clean-api      # Clean API only (removes node_modules, coverage)
-make clean-ui       # Clean UI only (removes node_modules, .next)
 ```
 
 ## UI Development Notes

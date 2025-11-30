@@ -15,7 +15,7 @@ import type { Account } from '@/types';
 const accountSchema = z.object({
   name: z.string().min(1, 'Account name is required').max(255),
   type: z.enum(['asset', 'liability', 'equity', 'income', 'expense'], {
-    required_error: 'Account type is required',
+    message: 'Account type is required',
   }),
   accountNumber: z.string().max(20).optional(),
   description: z.string().max(1000).optional(),

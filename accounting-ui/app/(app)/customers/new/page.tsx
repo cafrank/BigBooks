@@ -19,7 +19,7 @@ const customerSchema = z.object({
   website: z.string().url('Invalid URL').optional().or(z.literal('')),
   billingAddress: z.string().optional(),
   shippingAddress: z.string().optional(),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean(),
 });
 
 type CustomerFormData = z.infer<typeof customerSchema>;

@@ -19,7 +19,7 @@ const vendorSchema = z.object({
   phone: z.string().optional(),
   website: z.string().url('Invalid URL').optional().or(z.literal('')),
   billingAddress: z.string().optional(),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean(),
 });
 
 type VendorFormData = z.infer<typeof vendorSchema>;

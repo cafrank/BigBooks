@@ -55,22 +55,35 @@ export function calculateInvoiceTotals(
  * Transform invoice API data to form data
  */
 export function transformInvoiceToFormData(invoice: Invoice): InvoiceFormData {
+  // Convert ISO datetime to YYYY-MM-DD format for date inputs
+  const formatDateForInput = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
+  };
+
   return {
     customerId: invoice.customerId,
-    issueDate: invoice.issueDate,
-    dueDate: invoice.dueDate,
-    lineItems: invoice.lineItems?.map(item => ({
-      id: item.id,
-      description: item.description,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      taxRate: item.taxAmount && item.amount
-        ? (item.taxAmount / item.amount) * 100
-        : 0,
-    })) || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0 }],
+    issueDate: formatDateForInput(invoice.issueDate),
+    dueDate: formatDateForInput(invoice.dueDate),
+    lineItems: invoice.lineItems?.map(item => {
+      const unitPrice = typeof item.unitPrice === 'object' ? item.unitPrice.amount : item.unitPrice;
+      const amount = typeof item.amount === 'object' ? item.amount.amount : item.amount;
+      const taxAmount = typeof item.taxAmount === 'object' ? item.taxAmount.amount : (item.taxAmount || 0);
+
+      return {
+        id: item.id,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: unitPrice,
+        taxRate: taxAmount && amount
+          ? (taxAmount / amount) * 100
+          : 0,
+      };
+    }) || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0 }],
     notes: invoice.notes,
-    discountAmount: 0,
-    shippingAmount: 0,
+    discountAmount: typeof invoice.discountAmount === 'object' ? invoice.discountAmount.amount : (invoice.discountAmount || 0),
+    shippingAmount: typeof invoice.shippingAmount === 'object' ? invoice.shippingAmount.amount : (invoice.shippingAmount || 0),
   };
 }
 

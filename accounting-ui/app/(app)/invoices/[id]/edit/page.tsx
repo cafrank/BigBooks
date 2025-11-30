@@ -153,7 +153,7 @@ export default function EditInvoicePage() {
             onClick={handleSubmit(onSubmit)}
             isLoading={submitting}
           >
-            <Save className="mr-2 h-4 w-4" />
+            {!submitting && <Save className="mr-2 h-4 w-4" />}
             Save Changes
           </Button>
         </div>

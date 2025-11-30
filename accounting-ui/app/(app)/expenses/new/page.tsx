@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -53,7 +53,7 @@ const PAYMENT_METHODS = [
   'Other',
 ];
 
-export default function NewExpensePage() {
+function NewExpensePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -316,5 +316,17 @@ export default function NewExpensePage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function NewExpensePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-full items-center justify-center p-6">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
+      </div>
+    }>
+      <NewExpensePageContent />
+    </Suspense>
   );
 }

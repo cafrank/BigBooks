@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, DollarSign, Printer, Mail, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -28,7 +28,7 @@ const STATUS_COLORS = {
   voided: 'default',
 };
 
-export default function BillDetailPage() {
+function BillDetailPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -450,5 +450,17 @@ export default function BillDetailPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function BillDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-full items-center justify-center p-6">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
+      </div>
+    }>
+      <BillDetailPageContent />
+    </Suspense>
   );
 }

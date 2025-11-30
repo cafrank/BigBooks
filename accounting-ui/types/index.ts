@@ -43,41 +43,52 @@ export interface Vendor {
   createdAt: string;
 }
 
+export interface CurrencyAmount {
+  amount: number;
+  currency: string;
+}
+
 export interface Invoice {
   id: string;
   invoiceNumber: string;
   customerId: string;
   customerName?: string;
+  customer?: {
+    id: string;
+    displayName: string;
+    email: string;
+  };
   status: 'draft' | 'sent' | 'viewed' | 'partial' | 'paid' | 'overdue' | 'voided';
   issueDate: string;
   dueDate: string;
-  subtotal?: number;
-  taxAmount?: number;
-  total?: {
-    amount: number;
-    currency: string;
-  };
-  amountPaid?: {
-    amount: number;
-    currency: string;
-  };
-  amountDue: {
-    amount: number;
-    currency: string;
-  };
+  subtotal?: number | CurrencyAmount;
+  taxAmount?: number | CurrencyAmount;
+  discountAmount?: CurrencyAmount;
+  shippingAmount?: CurrencyAmount;
+  total: number | CurrencyAmount;
+  amountPaid?: number | CurrencyAmount;
+  amountDue: number | CurrencyAmount;
   currency?: string;
   lineItems?: InvoiceLineItem[];
   notes?: string;
+  terms?: string;
+  sentAt?: string | null;
+  paidAt?: string | null;
+  voidedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface InvoiceLineItem {
   id?: string;
+  productId?: string | null;
+  productName?: string | null;
   description: string;
   quantity: number;
-  unitPrice: number;
-  amount: number;
-  taxAmount?: number;
-  productId?: string;
+  unitPrice: number | CurrencyAmount;
+  discountPercent?: number;
+  taxAmount?: number | CurrencyAmount;
+  amount: number | CurrencyAmount;
 }
 
 export interface Payment {

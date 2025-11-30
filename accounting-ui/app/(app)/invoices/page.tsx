@@ -58,9 +58,9 @@ export default function InvoicesPage() {
           dueDate: '2024-02-15',
           subtotal: 5000,
           taxAmount: 400,
-          total: 5400,
-          amountPaid: 5400,
-          amountDue: 0,
+          total: { amount: 5400, currency: 'USD' },
+          amountPaid: { amount: 5400, currency: 'USD' },
+          amountDue: { amount: 0, currency: 'USD' },
           currency: 'USD',
         },
         {
@@ -73,9 +73,9 @@ export default function InvoicesPage() {
           dueDate: '2024-02-20',
           subtotal: 3500,
           taxAmount: 280,
-          total: 3780,
-          amountPaid: 0,
-          amountDue: 3780,
+          total: { amount: 3780, currency: 'USD' },
+          amountPaid: { amount: 0, currency: 'USD' },
+          amountDue: { amount: 3780, currency: 'USD' },
           currency: 'USD',
         },
         {
@@ -88,9 +88,9 @@ export default function InvoicesPage() {
           dueDate: '2024-01-10',
           subtotal: 7200,
           taxAmount: 576,
-          total: 7776,
-          amountPaid: 0,
-          amountDue: 7776,
+          total: { amount: 7776, currency: 'USD' },
+          amountPaid: { amount: 0, currency: 'USD' },
+          amountDue: { amount: 7776, currency: 'USD' },
           currency: 'USD',
         },
       ]);
@@ -179,10 +179,16 @@ export default function InvoicesPage() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  {formatCurrency(invoice.total, invoice.currency)}
+                  {formatCurrency(
+                    typeof invoice.total === 'object' ? invoice.total.amount : (invoice.total || 0),
+                    typeof invoice.total === 'object' ? invoice.total.currency : 'USD'
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
-                  {formatCurrency(invoice.amountDue, invoice.currency)}
+                  {formatCurrency(
+                    typeof invoice.amountDue === 'object' ? invoice.amountDue.amount : invoice.amountDue,
+                    typeof invoice.amountDue === 'object' ? invoice.amountDue.currency : 'USD'
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-2">

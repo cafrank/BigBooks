@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +12,11 @@ import { Select } from '@/components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/utils';
 import { invoicesApi, customersApi } from '@/lib/api';
+import { useInvoiceTotals } from '@/hooks/useInvoiceTotals';
+import {
+  cleanInvoiceFormData,
+  type InvoiceFormData,
+} from '@/lib/invoice-utils';
 import type { Customer } from '@/types';
 
 const lineItemSchema = z.object({
@@ -31,9 +36,7 @@ const invoiceSchema = z.object({
   shippingAmount: z.number().min(0).optional(),
 });
 
-type InvoiceFormData = z.infer<typeof invoiceSchema>;
-
-export default function NewInvoicePage() {
+function NewInvoicePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -66,6 +69,8 @@ export default function NewInvoicePage() {
   const watchDiscount = watch('discountAmount') || 0;
   const watchShipping = watch('shippingAmount') || 0;
 
+  const totals = useInvoiceTotals(watchLineItems, watchDiscount, watchShipping);
+
   useEffect(() => {
     loadCustomers();
 
@@ -90,42 +95,10 @@ export default function NewInvoicePage() {
     }
   };
 
-  // Calculate totals
-  const calculateTotals = () => {
-    const subtotal = watchLineItems.reduce((sum, item) => {
-      return sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
-    }, 0);
-
-    const taxAmount = watchLineItems.reduce((sum, item) => {
-      const itemTotal = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
-      const tax = itemTotal * ((Number(item.taxRate) || 0) / 100);
-      return sum + tax;
-    }, 0);
-
-    const total = subtotal + taxAmount + Number(watchShipping) - Number(watchDiscount);
-
-    return {
-      subtotal,
-      taxAmount,
-      total,
-    };
-  };
-
-  const totals = calculateTotals();
-
   const onSubmit = async (data: InvoiceFormData) => {
     setLoading(true);
     try {
-      // Clean up data - remove NaN values and ensure proper types
-      const cleanData = {
-        ...data,
-        discountAmount: isNaN(data.discountAmount!) ? 0 : (data.discountAmount || 0),
-        shippingAmount: isNaN(data.shippingAmount!) ? 0 : (data.shippingAmount || 0),
-        lineItems: data.lineItems.map(item => ({
-          ...item,
-          taxRate: isNaN(item.taxRate!) ? 0 : (item.taxRate || 0),
-        })),
-      };
+      const cleanData = cleanInvoiceFormData(data);
       const response = await invoicesApi.create(cleanData);
       router.push(`/invoices/${response.data.id}`);
     } catch (error: any) {
@@ -165,7 +138,7 @@ export default function NewInvoicePage() {
             onClick={handleSubmit(onSubmit)}
             isLoading={loading}
           >
-            <Save className="mr-2 h-4 w-4" />
+            {!loading && <Save className="mr-2 h-4 w-4" />}
             Create Invoice
           </Button>
         </div>
@@ -398,5 +371,17 @@ export default function NewInvoicePage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function NewInvoicePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-full items-center justify-center p-6">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
+      </div>
+    }>
+      <NewInvoicePageContent />
+    </Suspense>
   );
 }
