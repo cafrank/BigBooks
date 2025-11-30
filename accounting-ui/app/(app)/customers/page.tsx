@@ -18,8 +18,12 @@ import { formatCurrency } from '@/lib/utils';
 import { customersApi } from '@/lib/api';
 import type { Customer } from '@/types';
 
+interface CustomerWithBalance extends Customer {
+  computedBalance?: number;
+}
+
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<CustomerWithBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -44,7 +48,28 @@ export default function CustomersPage() {
   const loadCustomers = async () => {
     try {
       const response = await customersApi.getAll();
-      setCustomers(response.data.data || []);
+      const customersList = response.data.data || [];
+
+      // Fetch balance for each customer
+      const customersWithBalances = await Promise.all(
+        customersList.map(async (customer: Customer) => {
+          try {
+            const balanceResponse = await customersApi.getBalance(customer.id);
+            return {
+              ...customer,
+              computedBalance: balanceResponse.data.totalBalance?.amount || 0
+            };
+          } catch (error) {
+            console.error(`Failed to load balance for customer ${customer.id}:`, error);
+            return {
+              ...customer,
+              computedBalance: 0
+            };
+          }
+        })
+      );
+
+      setCustomers(customersWithBalances);
     } catch (error) {
       console.error('Failed to load customers:', error);
       // Use mock data for demo
@@ -151,7 +176,7 @@ export default function CustomersPage() {
                 <TableCell>{customer.email}</TableCell>
                 <TableCell>{customer.phone}</TableCell>
                 <TableCell className="text-right">
-                  {formatCurrency(customer.balance || 0)}
+                  {formatCurrency(customer.computedBalance || 0)}
                 </TableCell>
                 <TableCell>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

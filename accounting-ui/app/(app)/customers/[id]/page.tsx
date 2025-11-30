@@ -22,6 +22,7 @@ export default function CustomerDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [balance, setBalance] = useState<number>(0);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,8 +35,12 @@ export default function CustomerDetailPage() {
 
   const loadCustomer = async (id: string) => {
     try {
-      const response = await customersApi.getById(id);
-      setCustomer(response.data);
+      const [customerResponse, balanceResponse] = await Promise.all([
+        customersApi.getById(id),
+        customersApi.getBalance(id)
+      ]);
+      setCustomer(customerResponse.data);
+      setBalance(balanceResponse.data.totalBalance?.amount || 0);
     } catch (error) {
       console.error('Failed to load customer:', error);
       // Mock data
@@ -303,7 +308,7 @@ export default function CustomerDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">
-                {formatCurrency(customer.balance || 0)}
+                {formatCurrency(balance)}
               </div>
               <p className="text-sm text-gray-600 mt-1">Outstanding balance</p>
             </CardContent>

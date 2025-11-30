@@ -56,6 +56,7 @@ export const invoicesApi = {
 export const customersApi = {
   getAll: (params?: any) => api.get('/customers', { params }),
   getById: (id: string) => api.get(`/customers/${id}`),
+  getBalance: (id: string) => api.get(`/customers/${id}/balance`),
   create: (data: any) => api.post('/customers', data),
   update: (id: string, data: any) => api.put(`/customers/${id}`, data),
   delete: (id: string) => api.delete(`/customers/${id}`),
