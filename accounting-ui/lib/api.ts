@@ -72,6 +72,7 @@ export const paymentsApi = {
 export const vendorsApi = {
   getAll: (params?: any) => api.get('/vendors', { params }),
   getById: (id: string) => api.get(`/vendors/${id}`),
+  getBalance: (id: string) => api.get(`/vendors/${id}/balance`),
   create: (data: any) => api.post('/vendors', data),
   update: (id: string, data: any) => api.put(`/vendors/${id}`, data),
   delete: (id: string) => api.delete(`/vendors/${id}`),

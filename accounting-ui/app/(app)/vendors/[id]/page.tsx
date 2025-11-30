@@ -14,6 +14,7 @@ export default function VendorDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [balance, setBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,8 +25,12 @@ export default function VendorDetailPage() {
 
   const loadVendor = async (id: string) => {
     try {
-      const response = await vendorsApi.getById(id);
-      setVendor(response.data);
+      const [vendorResponse, balanceResponse] = await Promise.all([
+        vendorsApi.getById(id),
+        vendorsApi.getBalance(id)
+      ]);
+      setVendor(vendorResponse.data);
+      setBalance(balanceResponse.data.totalBalance?.amount || 0);
     } catch (error) {
       console.error('Failed to load vendor:', error);
       // Mock data
@@ -197,7 +202,7 @@ export default function VendorDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">
-                {formatCurrency(vendor.balance || 0)}
+                {formatCurrency(balance)}
               </div>
               <p className="text-sm text-gray-600 mt-1">Amount owed</p>
             </CardContent>
