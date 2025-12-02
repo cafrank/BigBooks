@@ -81,18 +81,19 @@ router.get('/', [
   validate
 ], async (req, res, next) => {
   try {
-    let q = db('accounts')
-      .where('organization_id', req.user.orgId)
-      .orderBy('account_number');
+    // Build base query with balance join
+    let q = db('accounts as a')
+      .leftJoin('v_account_balances as vab', 'a.id', 'vab.id')
+      .where('a.organization_id', req.user.orgId);
 
     // Filter by type
     if (req.query.type) {
-      q = q.where('account_type', req.query.type);
+      q = q.where('a.account_type', req.query.type);
     }
 
     // Filter by active status
     if (req.query.isActive !== undefined) {
-      q = q.where('is_active', req.query.isActive === 'true');
+      q = q.where('a.is_active', req.query.isActive === 'true');
     }
 
     // Search by name or account number
@@ -100,16 +101,37 @@ router.get('/', [
       const searchTerm = `%${req.query.search}%`;
       q = q.where((builder) => {
         builder
-          .where(db.raw('LOWER(name) LIKE LOWER(?)', [searchTerm]))
-          .orWhere(db.raw('LOWER(account_number) LIKE LOWER(?)', [searchTerm]))
-          .orWhere(db.raw('LOWER(description) LIKE LOWER(?)', [searchTerm]));
+          .where(db.raw('LOWER(a.name) LIKE LOWER(?)', [searchTerm]))
+          .orWhere(db.raw('LOWER(a.account_number) LIKE LOWER(?)', [searchTerm]))
+          .orWhere(db.raw('LOWER(a.description) LIKE LOWER(?)', [searchTerm]));
       });
     }
 
-    const result = await paginate(q, req.query);
-    result.data = result.data.map(formatAccount);
-    
-    res.json(result);
+    // Apply pagination and ordering
+    const limit = Math.min(parseInt(req.query.limit) || 25, 100);
+    const offset = parseInt(req.query.offset) || 0;
+
+    // Count total records
+    const countQuery = q.clone().clearSelect().clearOrder();
+    const countResult = await countQuery.countDistinct('a.id as count');
+    const total = parseInt(countResult[0].count);
+
+    // Get paginated data with balances
+    const accounts = await q
+      .select('a.*', 'vab.balance')
+      .orderBy('a.account_number')
+      .limit(limit)
+      .offset(offset);
+
+    res.json({
+      data: accounts.map(formatAccount),
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + accounts.length < total
+      }
+    });
   } catch (err) {
     next(err);
   }
@@ -644,6 +666,10 @@ function formatAccount(account) {
     currency: account.currency || 'USD',
     isActive: account.is_active,
     isSystemAccount: account.is_system_account,
+    balance: account.balance !== undefined && account.balance !== null ? {
+      amount: parseFloat(account.balance),
+      currency: account.currency || 'USD'
+    } : null,
     createdAt: account.created_at,
     updatedAt: account.updated_at
   };
