@@ -88,6 +88,14 @@ export const billsApi = {
   pay: (id: string, data: any) => api.post(`/bills/${id}/pay`, data),
 };
 
+export const vendorPaymentsApi = {
+  getAll: (params?: any) => api.get('/vendor-payments', { params }),
+  getById: (id: string) => api.get(`/vendor-payments/${id}`),
+  create: (data: any) => api.post('/vendor-payments', data),
+  update: (id: string, data: any) => api.put(`/vendor-payments/${id}`, data),
+  delete: (id: string) => api.delete(`/vendor-payments/${id}`),
+};
+
 export const expensesApi = {
   getAll: (params?: any) => api.get('/expenses', { params }),
   getById: (id: string) => api.get(`/expenses/${id}`),

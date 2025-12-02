@@ -58,6 +58,7 @@ export interface Invoice {
     displayName: string;
     email: string;
   };
+  arAccountId?: string;
   status: 'draft' | 'sent' | 'viewed' | 'partial' | 'paid' | 'overdue' | 'voided';
   issueDate: string;
   dueDate: string;

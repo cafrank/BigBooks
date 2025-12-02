@@ -10,6 +10,7 @@ export interface LineItemFormData {
 
 export interface InvoiceFormData {
   customerId: string;
+  arAccountId?: string;
   issueDate: string;
   dueDate: string;
   lineItems: LineItemFormData[];
@@ -64,6 +65,7 @@ export function transformInvoiceToFormData(invoice: Invoice): InvoiceFormData {
 
   return {
     customerId: invoice.customerId,
+    arAccountId: invoice.arAccountId,
     issueDate: formatDateForInput(invoice.issueDate),
     dueDate: formatDateForInput(invoice.dueDate),
     lineItems: invoice.lineItems?.map(item => {

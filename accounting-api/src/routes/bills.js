@@ -20,8 +20,16 @@ router.get('/', async (req, res, next) => {
       .select('bills.*', 'vendors.display_name as vendor_name')
       .orderBy('bills.due_date');
 
-    if (req.query.status) q = q.where('bills.status', req.query.status);
+    if (req.query.status) {
+      // Support comma-separated statuses for multiple status filtering
+      const statuses = req.query.status.split(',').map(s => s.trim());
+      q = q.whereIn('bills.status', statuses);
+    }
     if (req.query.vendorId) q = q.where('bills.vendor_id', req.query.vendorId);
+    if (req.query.unpaidOnly === 'true') {
+      // Filter to only bills with amount_due > 0
+      q = q.where('bills.amount_due', '>', 0);
+    }
 
     const result = await paginate(q, req.query);
     result.data = result.data.map(formatBillSummary);

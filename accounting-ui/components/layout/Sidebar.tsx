@@ -13,6 +13,7 @@ import {
   Building2,
   Landmark,
   Receipt,
+  Banknote,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +29,7 @@ const navigation: NavItem[] = [
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Payments', href: '/payments', icon: CreditCard },
   { name: 'Bills', href: '/bills', icon: Receipt },
+  { name: 'Pay Bills', href: '/vendor-payments', icon: Banknote },
   { name: 'Vendors', href: '/vendors', icon: Building2 },
   { name: 'Accounts', href: '/accounts', icon: Landmark },
   { name: 'Reports', href: '/reports', icon: TrendingUp },
