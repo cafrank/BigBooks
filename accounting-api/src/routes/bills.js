@@ -60,6 +60,7 @@ router.get('/:id', [
 // POST /v1/bills
 router.post('/', [
   body('vendorId').isUUID(),
+  body('apAccountId').optional().isUUID(),
   body('billDate').isISO8601(),
   body('dueDate').isISO8601(),
   body('lineItems').isArray({ min: 1 }),
@@ -86,6 +87,7 @@ router.post('/', [
           tax_amount: req.body.taxAmount || 0,
           total,
           amount_due: total,
+          ap_account_id: req.body.apAccountId,
           memo: req.body.memo,
           created_by: req.user.id
         })

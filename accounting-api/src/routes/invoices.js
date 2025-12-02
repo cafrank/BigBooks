@@ -51,6 +51,7 @@ router.get('/', [
 // POST /v1/invoices
 router.post('/', [
   body('customerId').isUUID(),
+  body('arAccountId').optional().isUUID(),
   body('issueDate').optional().isISO8601(),
   body('dueDate').optional().isISO8601(),
   body('lineItems').isArray({ min: 1 }),
@@ -109,6 +110,7 @@ router.post('/', [
           shipping_amount: shippingAmount,
           total,
           amount_due: total,
+          ar_account_id: req.body.arAccountId,
           notes: req.body.notes,
           terms: req.body.terms,
           created_by: req.user.id
@@ -161,6 +163,7 @@ router.get('/:id', [
 router.put('/:id', [
   param('id').isUUID(),
   body('customerId').isUUID(),
+  body('arAccountId').optional().isUUID(),
   body('issueDate').optional().isISO8601(),
   body('dueDate').optional().isISO8601(),
   body('lineItems').isArray({ min: 1 }),
@@ -225,6 +228,7 @@ router.put('/:id', [
           shipping_amount: shippingAmount,
           total,
           amount_due: total - parseFloat(existingInvoice.amount_paid),
+          ar_account_id: req.body.arAccountId !== undefined ? req.body.arAccountId : existingInvoice.ar_account_id,
           notes: req.body.notes,
           terms: req.body.terms,
           updated_at: trx.fn.now()
@@ -294,13 +298,22 @@ router.patch('/:id', [
 
       // Create ledger entries when invoice changes from draft to sent
       if (currentInvoice.status === 'draft' && req.body.status === 'sent') {
-        // Get accounts receivable account
-        const arAccount = await trx('accounts')
-          .where({ organization_id: req.user.orgId, account_subtype: 'accounts_receivable' })
-          .first();
+        // Get accounts receivable account - use invoice's AR account if specified, otherwise default
+        let arAccount;
+        if (currentInvoice.ar_account_id) {
+          arAccount = await trx('accounts')
+            .where({ id: currentInvoice.ar_account_id, organization_id: req.user.orgId })
+            .first();
+        }
 
         if (!arAccount) {
-          throw new AppError('Accounts Receivable account not found. Please create one in your chart of accounts.', 400);
+          arAccount = await trx('accounts')
+            .where({ organization_id: req.user.orgId, account_subtype: 'accounts_receivable' })
+            .first();
+        }
+
+        if (!arAccount) {
+          throw new AppError('Accounts Receivable account not found. Please create one in your chart of accounts or select one for this invoice.', 400);
         }
 
         // Get invoice line items with their revenue accounts

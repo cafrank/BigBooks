@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { paymentsApi, customersApi, invoicesApi } from '@/lib/api';
+import { paymentsApi, customersApi, invoicesApi, accountsApi } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
-import type { Customer, Invoice } from '@/types';
+import type { Customer, Invoice, Account } from '@/types';
 
 const paymentSchema = z.object({
   customerId: z.string().min(1, 'Customer is required'),
@@ -20,6 +20,7 @@ const paymentSchema = z.object({
   paymentDate: z.string().min(1, 'Payment date is required'),
   amount: z.number().min(0.01, 'Amount must be greater than 0'),
   paymentMethod: z.string().min(1, 'Payment method is required'),
+  depositAccountId: z.string().optional(),
   referenceNumber: z.string().optional(),
   memo: z.string().optional(),
 });
@@ -32,6 +33,7 @@ function NewPaymentPageContent() {
   const [loading, setLoading] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
 
   const {
@@ -53,6 +55,7 @@ function NewPaymentPageContent() {
 
   useEffect(() => {
     loadCustomers();
+    loadAccounts();
 
     // Pre-fill from query params if available
     const invoiceId = searchParams.get('invoiceId');
@@ -92,6 +95,16 @@ function NewPaymentPageContent() {
         { id: '1', displayName: 'Acme Corporation', email: 'billing@acme.com', isActive: true, createdAt: '2024-01-01' },
         { id: '2', displayName: 'Tech Solutions Inc', email: 'info@techsolutions.com', isActive: true, createdAt: '2024-01-01' },
       ]);
+    }
+  };
+
+  const loadAccounts = async () => {
+    try {
+      // Load cash and bank accounts (asset accounts with subtype cash_and_cash_equivalents)
+      const response = await accountsApi.getAll({ accountSubtype: 'cash_and_cash_equivalents', isActive: true });
+      setAccounts(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to load accounts:', error);
     }
   };
 
@@ -239,6 +252,19 @@ function NewPaymentPageContent() {
                   label="Amount *"
                   placeholder="0.00"
                   error={errors.amount?.message}
+                />
+
+                <Select
+                  {...register('depositAccountId')}
+                  label="Deposit To Account"
+                  error={errors.depositAccountId?.message}
+                  options={[
+                    { value: '', label: 'Select a cash/bank account' },
+                    ...accounts.map((a) => ({
+                      value: a.id,
+                      label: a.accountNumber ? `${a.accountNumber} - ${a.name}` : a.name,
+                    })),
+                  ]}
                 />
               </CardContent>
             </Card>

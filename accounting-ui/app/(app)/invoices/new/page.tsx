@@ -11,13 +11,13 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/utils';
-import { invoicesApi, customersApi } from '@/lib/api';
+import { invoicesApi, customersApi, accountsApi } from '@/lib/api';
 import { useInvoiceTotals } from '@/hooks/useInvoiceTotals';
 import {
   cleanInvoiceFormData,
   type InvoiceFormData,
 } from '@/lib/invoice-utils';
-import type { Customer } from '@/types';
+import type { Customer, Account } from '@/types';
 
 const lineItemSchema = z.object({
   description: z.string().min(1, 'Description is required'),
@@ -28,6 +28,7 @@ const lineItemSchema = z.object({
 
 const invoiceSchema = z.object({
   customerId: z.string().min(1, 'Customer is required'),
+  arAccountId: z.string().optional(),
   issueDate: z.string().min(1, 'Issue date is required'),
   dueDate: z.string().min(1, 'Due date is required'),
   lineItems: z.array(lineItemSchema).min(1, 'At least one line item is required'),
@@ -40,6 +41,7 @@ function NewInvoicePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
 
   const {
@@ -73,6 +75,7 @@ function NewInvoicePageContent() {
 
   useEffect(() => {
     loadCustomers();
+    loadAccounts();
 
     // Pre-fill customer from query params if available
     const customerId = searchParams.get('customerId');
@@ -92,6 +95,16 @@ function NewInvoicePageContent() {
         { id: '1', displayName: 'Acme Corporation', email: 'billing@acme.com', isActive: true, createdAt: '2024-01-01' },
         { id: '2', displayName: 'Tech Solutions Inc', email: 'info@techsolutions.com', isActive: true, createdAt: '2024-01-01' },
       ]);
+    }
+  };
+
+  const loadAccounts = async () => {
+    try {
+      // Load accounts receivable accounts (asset accounts with subtype accounts_receivable)
+      const response = await accountsApi.getAll({ accountSubtype: 'accounts_receivable', isActive: true });
+      setAccounts(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to load accounts:', error);
     }
   };
 
@@ -161,6 +174,18 @@ function NewInvoicePageContent() {
                   options={[
                     { value: '', label: 'Select a customer' },
                     ...customers.map((c) => ({ value: c.id, label: c.displayName })),
+                  ]}
+                />
+                <Select
+                  {...register('arAccountId')}
+                  label="Accounts Receivable Account"
+                  error={errors.arAccountId?.message}
+                  options={[
+                    { value: '', label: 'Use default AR account' },
+                    ...accounts.map((a) => ({
+                      value: a.id,
+                      label: a.accountNumber ? `${a.accountNumber} - ${a.name}` : a.name,
+                    })),
                   ]}
                 />
                 <div className="grid gap-4 md:grid-cols-2">

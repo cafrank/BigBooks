@@ -25,6 +25,7 @@ const lineItemSchema = z.object({
 
 const billSchema = z.object({
   vendorId: z.string().min(1, 'Vendor is required'),
+  apAccountId: z.string().optional(),
   billDate: z.string().min(1, 'Bill date is required'),
   dueDate: z.string().min(1, 'Due date is required'),
   lineItems: z.array(lineItemSchema).min(1, 'At least one line item is required'),
@@ -37,7 +38,8 @@ function NewBillPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [expenseAccounts, setExpenseAccounts] = useState<Account[]>([]);
+  const [apAccounts, setApAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
 
   const {
@@ -91,8 +93,12 @@ function NewBillPageContent() {
   const loadAccounts = async () => {
     try {
       // Load expense accounts for bill line items
-      const response = await accountsApi.getAll({ type: 'expense', isActive: true });
-      setAccounts(response.data.data || []);
+      const expenseResponse = await accountsApi.getAll({ type: 'expense', isActive: true });
+      setExpenseAccounts(expenseResponse.data.data || []);
+
+      // Load accounts payable accounts
+      const apResponse = await accountsApi.getAll({ accountSubtype: 'accounts_payable', isActive: true });
+      setApAccounts(apResponse.data.data || []);
     } catch (error) {
       console.error('Failed to load accounts:', error);
     }
@@ -203,6 +209,18 @@ function NewBillPageContent() {
                     ...vendors.map((v) => ({ value: v.id, label: v.displayName })),
                   ]}
                 />
+                <Select
+                  {...register('apAccountId')}
+                  label="Accounts Payable Account"
+                  error={errors.apAccountId?.message}
+                  options={[
+                    { value: '', label: 'Use default AP account' },
+                    ...apAccounts.map((a) => ({
+                      value: a.id,
+                      label: a.accountNumber ? `${a.accountNumber} - ${a.name}` : a.name,
+                    })),
+                  ]}
+                />
                 <div className="grid gap-4 md:grid-cols-2">
                   <Input
                     {...register('billDate')}
@@ -249,7 +267,7 @@ function NewBillPageContent() {
                           error={errors.lineItems?.[index]?.accountId?.message}
                           options={[
                             { value: '', label: 'Select an account' },
-                            ...accounts.map((a) => ({
+                            ...expenseAccounts.map((a) => ({
                               value: a.id,
                               label: a.accountNumber ? `${a.accountNumber} - ${a.name}` : a.name,
                             })),
