@@ -1,36 +1,50 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Download, FileText, TrendingUp, DollarSign } from 'lucide-react';
+import { Download, FileText, TrendingUp, DollarSign, BookOpen } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 export default function ReportsPage() {
+  const router = useRouter();
+
   const reports = [
     {
       name: 'Profit & Loss',
       description: 'View your income and expenses over time',
       icon: TrendingUp,
       color: 'bg-blue-100 text-blue-600',
+      path: null,
     },
     {
       name: 'Balance Sheet',
       description: 'See your assets, liabilities, and equity',
       icon: FileText,
       color: 'bg-green-100 text-green-600',
+      path: null,
+    },
+    {
+      name: 'Transaction Journal',
+      description: 'View all ledger transactions with debits and credits',
+      icon: BookOpen,
+      color: 'bg-indigo-100 text-indigo-600',
+      path: '/reports/transaction-journal',
     },
     {
       name: 'Cash Flow Statement',
       description: 'Track the movement of cash in and out',
       icon: DollarSign,
       color: 'bg-purple-100 text-purple-600',
+      path: null,
     },
     {
       name: 'Accounts Receivable Aging',
       description: 'See which invoices are outstanding',
       icon: FileText,
       color: 'bg-orange-100 text-orange-600',
+      path: null,
     },
   ];
 
@@ -63,10 +77,15 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => report.path && router.push(report.path)}
+                    disabled={!report.path}
+                  >
                     View Report
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" disabled={!report.path}>
                     <Download className="h-4 w-4" />
                   </Button>
                 </div>

@@ -110,4 +110,5 @@ export const reportsApi = {
   getProfitLoss: (params?: any) => api.get('/reports/profit-loss', { params }),
   getBalanceSheet: (params?: any) => api.get('/reports/balance-sheet', { params }),
   getCashFlow: (params?: any) => api.get('/reports/cash-flow', { params }),
+  getTransactionJournal: (params?: any) => api.get('/reports/transaction-journal', { params }),
 };
