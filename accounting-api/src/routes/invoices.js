@@ -270,23 +270,121 @@ router.patch('/:id', [
   validate
 ], async (req, res, next) => {
   try {
-    const updates = {};
-    if (req.body.status) updates.status = req.body.status;
-    if (req.body.dueDate) updates.due_date = req.body.dueDate;
-    if (req.body.notes !== undefined) updates.notes = req.body.notes;
-    if (req.body.terms !== undefined) updates.terms = req.body.terms;
-    if (req.body.status === 'voided') updates.voided_at = db.fn.now();
+    const result = await db.transaction(async (trx) => {
+      // Get current invoice to check status change
+      const currentInvoice = await trx('invoices')
+        .where({ id: req.params.id, organization_id: req.user.orgId })
+        .first();
 
-    const [invoice] = await db('invoices')
-      .where({ id: req.params.id, organization_id: req.user.orgId })
-      .update(updates)
-      .returning('*');
+      if (!currentInvoice) {
+        throw new AppError('Invoice not found', 404);
+      }
 
-    if (!invoice) {
-      throw new AppError('Invoice not found', 404);
-    }
-    
-    const fullInvoice = await getInvoiceById(invoice.id, req.user.orgId);
+      const updates = {};
+      if (req.body.status) updates.status = req.body.status;
+      if (req.body.dueDate) updates.due_date = req.body.dueDate;
+      if (req.body.notes !== undefined) updates.notes = req.body.notes;
+      if (req.body.terms !== undefined) updates.terms = req.body.terms;
+      if (req.body.status === 'voided') updates.voided_at = db.fn.now();
+
+      const [invoice] = await trx('invoices')
+        .where({ id: req.params.id, organization_id: req.user.orgId })
+        .update(updates)
+        .returning('*');
+
+      // Create ledger entries when invoice changes from draft to sent
+      if (currentInvoice.status === 'draft' && req.body.status === 'sent') {
+        // Get accounts receivable account
+        const arAccount = await trx('accounts')
+          .where({ organization_id: req.user.orgId, account_subtype: 'accounts_receivable' })
+          .first();
+
+        if (!arAccount) {
+          throw new AppError('Accounts Receivable account not found. Please create one in your chart of accounts.', 400);
+        }
+
+        // Get invoice line items with their revenue accounts
+        const lineItems = await trx('invoice_line_items as ili')
+          .leftJoin('products as p', 'ili.product_id', 'p.id')
+          .where('ili.invoice_id', invoice.id)
+          .select('ili.*', 'p.income_account_id');
+
+        // Debit Accounts Receivable for the full invoice total
+        await trx('ledger_entries').insert({
+          organization_id: req.user.orgId,
+          account_id: arAccount.id,
+          transaction_date: invoice.issue_date,
+          transaction_type: 'invoice',
+          source_id: invoice.id,
+          description: `Invoice ${invoice.invoice_number}`,
+          debit: invoice.total,
+          credit: 0,
+          customer_id: invoice.customer_id,
+          is_posted: true
+        });
+
+        // Group line items by income account
+        const revenueByAccount = {};
+        for (const item of lineItems) {
+          // Use product's income account if available, otherwise use default
+          let incomeAccountId = item.income_account_id;
+
+          if (!incomeAccountId) {
+            // Get default income account (sales revenue)
+            const defaultIncome = await trx('accounts')
+              .where({ organization_id: req.user.orgId, account_type: 'income' })
+              .orderBy('account_number', 'asc')
+              .first();
+            incomeAccountId = defaultIncome?.id;
+          }
+
+          if (incomeAccountId) {
+            if (!revenueByAccount[incomeAccountId]) {
+              revenueByAccount[incomeAccountId] = 0;
+            }
+            revenueByAccount[incomeAccountId] += parseFloat(item.amount) + parseFloat(item.tax_amount || 0);
+          }
+        }
+
+        // Add shipping and subtract discounts
+        if (invoice.shipping_amount > 0 || invoice.discount_amount > 0) {
+          const defaultIncome = await trx('accounts')
+            .where({ organization_id: req.user.orgId, account_type: 'income' })
+            .orderBy('account_number', 'asc')
+            .first();
+
+          if (defaultIncome) {
+            if (!revenueByAccount[defaultIncome.id]) {
+              revenueByAccount[defaultIncome.id] = 0;
+            }
+            revenueByAccount[defaultIncome.id] += parseFloat(invoice.shipping_amount || 0);
+            revenueByAccount[defaultIncome.id] -= parseFloat(invoice.discount_amount || 0);
+          }
+        }
+
+        // Credit revenue accounts
+        for (const [accountId, amount] of Object.entries(revenueByAccount)) {
+          if (amount !== 0) {
+            await trx('ledger_entries').insert({
+              organization_id: req.user.orgId,
+              account_id: accountId,
+              transaction_date: invoice.issue_date,
+              transaction_type: 'invoice',
+              source_id: invoice.id,
+              description: `Invoice ${invoice.invoice_number}`,
+              debit: 0,
+              credit: amount,
+              customer_id: invoice.customer_id,
+              is_posted: true
+            });
+          }
+        }
+      }
+
+      return invoice;
+    });
+
+    const fullInvoice = await getInvoiceById(result.id, req.user.orgId);
     res.json(fullInvoice);
   } catch (err) {
     next(err);
